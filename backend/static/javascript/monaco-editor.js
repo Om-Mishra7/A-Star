@@ -109,7 +109,7 @@ require(["vs/editor/editor.main"], function () {
           }
           else {
             document.getElementById('output').classList.add('incorrect-answer');
-            document.getElementById('output').innerHTML = `<div class="result">Status: ${result}</div><div class="time">Time: ${time}</div><div class="memory">Memory: ${memory}</div>`;
+            document.getElementById('output').innerHTML = `<div class="result">Status: ${result}</div><div class="time">Time: ${time}</div><div class="memory">Memory: ${memory}</div><div class="number_of_passed_test_cases">Number of passed test cases: ${data.data.number_of_passed_test_cases}</div>`;
           }
           clearInterval(pollInterval);  // Stop polling
         } else {

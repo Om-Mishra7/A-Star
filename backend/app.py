@@ -14,9 +14,11 @@ from flask_ckeditor import CKEditor
 from flask_ckeditor.utils import cleanify
 
 def compare_output(submission_output, problem_id):
-    number_of_passed_test_cases = 0
     problem = mongodb_client.problems.find_one({"problem_id": problem_id})
     expected_output = list(map(str.strip, problem.get("problem_stdout").split("\n")))
+    number_of_passed_test_cases = 0
+    if submission_output is None:
+        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
     submission_output = list(map(str.strip, submission_output.split("\n")))
 
     for i in range(len(expected_output)):
@@ -553,51 +555,53 @@ def get_submission(submission_id):
             {"submission_id": submission_id}
         )
         if submission and submission["user_id"] == session["user"]["user_account"]["user_id"]:
-            if submission["submission_status"]["status_code"] == 0:
-                judge0_response = requests.get(
-                    f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}",
-                    headers={"Authorization": "Bearer " + os.getenv("API_KEY")},
+
+            judge0_response = requests.get(
+                f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}",
+                headers={"Authorization": "Bearer " + os.getenv("API_KEY")},
+            )
+
+            print(judge0_response.json())
+            if judge0_response.status_code == 200:
+                number_of_passed_test_cases = compare_output(judge0_response.json()["stdout"], submission["problem_id"])
+
+
+                submission_status = judge0_response.json()
+                submission_status["stdout"] = "-- Hidden --"
+
+
+                submission["submission_status"] = {
+                    "status_code": submission_status["status"]["id"],
+                    "status": submission_status["status"]["description"],
+                    "time": submission_status["time"],
+                    "memory": submission_status["memory"],
+                    "number_of_passed_test_cases": number_of_passed_test_cases,
+                }
+                mongodb_client.submissions.update_one(
+                    {"submission_id": submission_id},
+                    {
+                        "$set": {
+                            "submission_status": submission["submission_status"]
+                        }
+                    },
                 )
-                if judge0_response.status_code == 200:
-                    number_of_passed_test_cases = compare_output(submission_status["stdout"], submission["problem_id"])
-
-
-                    submission_status = judge0_response.json()
-                    submission_status["stdout"] = "-- Hidden --"
-
-
-                    submission["submission_status"] = {
-                        "status_code": submission_status["status"]["id"],
-                        "status": submission_status["status"]["description"],
-                        "time": submission_status["time"],
-                        "memory": submission_status["memory"],
-                        "number_of_passed_test_cases": number_of_passed_test_cases,
-                    }
-                    mongodb_client.submissions.update_one(
-                        {"submission_id": submission_id},
+                if submission_status["status"]["id"] == 3:
+                    mongodb_client.problems.update_one(
+                        {"problem_id": submission["problem_id"]},
                         {
-                            "$set": {
-                                "submission_status": submission["submission_status"]
+                            "$inc": {
+                                "problem_statistics.total_accepted_submissions": 1,
                             }
                         },
                     )
-                    if submission_status["status"]["id"] == 3:
-                        mongodb_client.problems.update_one(
-                            {"problem_id": submission["problem_id"]},
-                            {
-                                "$inc": {
-                                    "problem_statistics.total_accepted_submissions": 1,
-                                }
-                            },
+                    return jsonify(
+                        {
+                            "response_code": 200,
+                            "data": submission_status,
+                            "identifier": str(uuid.uuid4()),
+                        }
                         )
-                        return jsonify(
-                            {
-                                "response_code": 200,
-                                "data": submission_status,
-                                "identifier": str(uuid.uuid4()),
-                            }
-                        )
-                elif submission_status["sdtdout"] != "":
+                elif submission_status["stdout"] != None:
                     mongodb_client.problems.update_one(
                         {"problem_id": submission["problem_id"]},
                         {
