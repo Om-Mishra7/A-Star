@@ -1,0 +1,8 @@
+requests
+redis
+python-dotenv
+pymongo
+Flask
+Flask-Session
+flask-cors
+Flask-CKEditor
