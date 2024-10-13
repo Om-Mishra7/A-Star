@@ -549,8 +549,9 @@ def get_submission(submission_id):
                 if judge0_response.status_code == 200:
 
                     submission_status = judge0_response.json()
+                    submission_status["stdout"] = "-- Hidden --"
 
-                    print(submission_status)
+
                     submission["submission_status"] = {
                         "status_code": submission_status["status"]["id"],
                         "status": submission_status["status"]["description"],
@@ -574,7 +575,6 @@ def get_submission(submission_id):
                                 }
                             },
                         )
-                        submission_status["stdout"] = "-- Hidden --"
                         return jsonify(
                             {
                                 "response_code": 200,
