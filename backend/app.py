@@ -13,6 +13,18 @@ from flask_cors import CORS
 from flask_ckeditor import CKEditor
 from flask_ckeditor.utils import cleanify
 
+def compare_output(submission_output, problem_id):
+    number_of_passed_test_cases = 0
+    problem = mongodb_client.problems.find_one({"problem_id": problem_id})
+    expected_output = list(map(str.strip, problem.get("problem_stdout").split("\n")))
+    submission_output = list(map(str.strip, submission_output.split("\n")))
+
+    for i in range(len(expected_output)):
+        if expected_output[i] == submission_output[i]:
+            number_of_passed_test_cases += 1
+
+    return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
+
 
 load_dotenv()  # take environment variables from .env.
 
@@ -547,6 +559,8 @@ def get_submission(submission_id):
                     headers={"Authorization": "Bearer " + os.getenv("API_KEY")},
                 )
                 if judge0_response.status_code == 200:
+                    number_of_passed_test_cases = compare_output(submission_status["stdout"], submission["problem_id"])
+
 
                     submission_status = judge0_response.json()
                     submission_status["stdout"] = "-- Hidden --"
@@ -557,6 +571,7 @@ def get_submission(submission_id):
                         "status": submission_status["status"]["description"],
                         "time": submission_status["time"],
                         "memory": submission_status["memory"],
+                        "number_of_passed_test_cases": number_of_passed_test_cases,
                     }
                     mongodb_client.submissions.update_one(
                         {"submission_id": submission_id},
@@ -582,6 +597,7 @@ def get_submission(submission_id):
                                 "identifier": str(uuid.uuid4()),
                             }
                         )
+                elif submission_status["sdtdout"] != "":
                     mongodb_client.problems.update_one(
                         {"problem_id": submission["problem_id"]},
                         {
@@ -590,6 +606,7 @@ def get_submission(submission_id):
                             }
                         },
                     )
+                    submission_status["number_of_passed_test_cases"] = number_of_passed_test_cases
                     return jsonify(
                         {
                             "response_code": 200,
@@ -597,6 +614,18 @@ def get_submission(submission_id):
                             "identifier": str(uuid.uuid4()),
                         }
                     )
+                else:
+                    return (
+                        jsonify(
+                            {
+                                "response_code": 200,
+                                "data": submission_status,
+                                "identifier": str(uuid.uuid4()),
+                            }
+                        ),
+                        200,
+                    )
+                
         return (
             jsonify(
                 {
