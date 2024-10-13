@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Problem | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="home_primary">
+        <form action="/api/v1/create-problem" method="POST" class="form">
+          <p class="form-title">Create Problem</p>
+          <div class="form-group">
+            <label for="problem_title">Problem Title</label>
+            <input type="text" name="problem_title" id="problem_title" class="form-control" required>
+            <label for="problem_description">Problem Description</label>
+            {{ ckeditor.create() }}
+            <label for="problem_stdin">Problem Stdin</label>
+            <textarea name="problem_stdin" id="problem_stdin" class="form-control" required></textarea>
+            <label for="problem_stdout">Problem Stdout</label>
+            <textarea name="problem_stdout" id="problem_stdout" class="form-control" required></textarea>
+            <label for="problem_level">Problem Level</label>
+            <select name="problem_level" id="problem_level" class="form-control" required>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+            <label for="problem_tags">Problem Tags</label>
+            <input type="text" name="problem_tags" id="problem_tags" class="form-control" required>
+            </div>
+            <div class="form-group form-group--submit">
+              <button type="submit" class="btn btn--primary">Create Problem</button>
+            </div>
+          </form>
+          </div>
+      {% include 'private/sidebar.html' %}
+    </div>
+
+  </main>
+
+
+</body>
+
+</html>

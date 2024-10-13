@@ -1,0 +1,39 @@
+<div class="home_sidebar">
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Upcoming Contests</p>
+    <div class="home_sidebar_body">
+      {% for contest in contests %}
+      <a href="/contests/{{ contest.contest_id }}">{{ contest.contest_name }}</a>
+      {% else %}
+      <p>No upcoming contests</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Leaderboard (Global)</p>
+    <div class="home_sidebar_body">
+      {% for user in leaderboard %}
+      <p>{{ user.username }} - {{ user.points }}</p>
+      {% else %}
+      <p>No users in leaderboard</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Recent Announcements</p>
+    <div class="home_sidebar_body">
+      <div class="home_sidebar_announcements">
+      {% for announcement in announcements %}
+      <div class="home_sidebar_announcement">
+      <a href="/announcements/{{ announcement.announcement_id }}" style="text-decoration: none;">{{ announcement.announcement_title }}</a>
+      <p>{{ format_date(announcement.created_at) }}</p>
+      </div>
+      {% else %}
+      </div>
+      <p>No announcements</p>
+        </div>
+      {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>

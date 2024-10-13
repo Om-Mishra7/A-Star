@@ -1,0 +1,27 @@
+<navbar>
+  <div class="navbar-header">
+    <img src="/static/assets/a*-logo.png" alt="A* Logo" class="navbar-logo" style="height: 25px;" onclick="window.location.href = '/'" style="cursor: pointer;">
+  </div>
+  <div class="navbar-links">
+    {% if session.is_authenticated %}
+      {% if session.user.user_account.role == "admin" %}
+        <a href="/create-contest">Create Contest</a>
+        <a href="/create-problem">Create Problem</a>
+        <a href="/create-announcement">Create Announcement</a>
+        <a href="/platform-information">Platform Information</a>
+                <a href="/profile/{{ session.user.user_account.user_id }}"><img src="{{ session.user.user_profile.avatar_url }}"
+                    alt="avatar" class="avatar"></a>
+      {% else %}
+        <a href="/Contests">Contests</a>
+        <a href="/problems">Problems</a>
+        <a href="/leaderboard">Leaderboard</a>
+        <a href="/profile/{{ session.user.user_account.user_id }}"><img src="{{ session.user.user_profile.avatar_url }}"
+            alt="avatar" class="avatar"></a>
+      {% endif %}
+    {% else %}
+      <a href="/login">Login</a>
+      <a href="/leaderboard">Leaderboard</a>
+    {% endif %}
+  </div>
+</navbar>
+{% include 'private/global_message.html' %}
