@@ -21,9 +21,12 @@ def compare_output(submission_output, problem_id):
         return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
     submission_output = list(map(str.strip, submission_output.split("\n")))
 
-    for i in range(len(expected_output)):
-        if expected_output[i] == submission_output[i]:
-            number_of_passed_test_cases += 1
+    try:
+        for i in range(len(expected_output)):
+            if expected_output[i] == submission_output[i]:
+                number_of_passed_test_cases += 1
+    except IndexError:
+        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
 
     return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
 

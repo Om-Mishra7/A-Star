@@ -36,6 +36,8 @@ require(["vs/editor/editor.main"], function () {
 
   // Submit button functionality
   document.getElementById('submit').addEventListener('click', function () {
+    document.getElementById('submit').disabled = true;
+    document.getElementById('output').innerText = 'Submitting code...';
     const code = editor.getValue();
     const problemId = document.getElementById('problem-id').value;
     const selectedLanguage = document.getElementById('language').value;
@@ -90,10 +92,12 @@ require(["vs/editor/editor.main"], function () {
         }
         return response.json();
       })
-      .then(data => {
+        .then(data => {
+          document.getElementById('output').innerText = 'Polling result: In progress...';
         const statusId = data.data.status.id;
         if (statusId !== 0) {
           // Final status, display results
+          document.getElementById('submit').disabled = false;
           const time = data.data.time + " seconds";
           const memory = data.data.memory + " KB";
           const result = data.data.status.description;
