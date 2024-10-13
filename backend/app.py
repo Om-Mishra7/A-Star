@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify, session, redirect, url_for, render_te
 from flask_session import Session
 from flask_cors import CORS
 from flask_ckeditor import CKEditor
+from flask_ckeditor.utils import cleanify
 
 
 from helpers import setup_mongodb
