@@ -5,4 +5,4 @@ pymongo
 Flask
 Flask-Session
 flask-cors
-Flask-CKEditor
+flask-ckeditor[all]
