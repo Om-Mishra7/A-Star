@@ -14,9 +14,6 @@ from flask_ckeditor import CKEditor
 from flask_ckeditor.utils import cleanify
 
 
-from helpers import setup_mongodb
-
-
 load_dotenv()  # take environment variables from .env.
 
 app = Flask(__name__)
@@ -45,8 +42,6 @@ ckeditor = CKEditor(app)
 
 # Connect to MongoDB
 mongodb_client = MongoClient(os.getenv("MONGODB_URI"))["communitycompetitionprod"]
-
-setup_mongodb(mongodb_client)
 
 # App context processors
 @app.context_processor
