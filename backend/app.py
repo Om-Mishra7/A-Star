@@ -23,7 +23,8 @@ app = Flask(__name__)
 
 # App Configuration
 app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_PERMANENT"] = True
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_EXPIRES"] = 3600*24*30  # 30 days
 app.config["SESSION_USE_SIGNER"] = True
 app.config["SESSION_KEY_PREFIX"] = "session:"
 app.config["SESSION_COOKIE_NAME"] = "session"
