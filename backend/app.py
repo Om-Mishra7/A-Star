@@ -12,6 +12,11 @@ from flask_session import Session
 from flask_cors import CORS
 from flask_ckeditor import CKEditor
 from flask_ckeditor.utils import cleanify
+from zoneinfo import ZoneInfo
+
+# Get the current time in the "Asia/Kolkata" timezone
+kolkata_tz = ZoneInfo("Asia/Kolkata")
+
 
 def compare_output(submission_output, problem_id):
     problem = mongodb_client.problems.find_one({"problem_id": problem_id})
@@ -38,7 +43,7 @@ app = Flask(__name__)
 # App Configuration
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_EXPIRES"] = 3600*24*30  # 30 days
+app.config["SESSION_EXPIRES"] = 3600 * 24 * 30  # 30 days
 app.config["SESSION_USE_SIGNER"] = True
 app.config["SESSION_KEY_PREFIX"] = "session:"
 app.config["SESSION_COOKIE_NAME"] = "session"
@@ -76,15 +81,241 @@ def inject_global_vars():
                 "created_at", -1
             )
         ),
+        upcoming_contests=list(
+            contests
+            for contests in mongodb_client.contests.find({}, {"_id": 0})
+            if datetime.strptime(
+                contests["contest_start_time"], "%Y-%m-%dT%H:%M"
+            ).replace(tzinfo=kolkata_tz)
+            > datetime.now(tz=kolkata_tz)
+        ),
     )
 
 
 @app.context_processor
 def format_date():
-    def format_date(date):
-        return date.strftime("%B %d, %Y")
+    def format_date(date, format="long"):
+        if isinstance(date, str):
+            # Try different date formats
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+                try:
+                    date = datetime.strptime(date, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                return date
+        if format == "short":
+            return date.strftime("%b %d, %Y")
+        elif format == "long":
+            return date.strftime("%B %d, %Y %I:%M %p")
 
     return dict(format_date=format_date)
+
+
+def calculate_score(user_id, contest_id):
+    contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+    leaderboard = contest["contest_statistics"]["contest_leaderboard"]
+    user_score = 0
+    for problem in contest["contest_problems"].values():
+        if leaderboard[user_id]["problems"][problem]["has_accepted_submission"]:
+            user_score += (
+                20
+                if problem == contest["contest_problems"]["easy_problem"]
+                else 30
+                if problem == contest["contest_problems"]["medium_problem"]
+                else 50
+            )
+            user_score -= (
+                min(
+                    leaderboard[user_id]["problems"][problem][
+                        "number_of_incorrect_submissions"
+                    ],
+                    5,
+                )
+                * 2
+            )
+            user_score += int(
+                100
+                / (
+                    float(
+                        mongodb_client.submissions.find_one(
+                            {
+                                "submission_id": leaderboard[user_id]["problems"][
+                                    problem
+                                ]["submissions_id"]
+                            }
+                        )["submission_status"]["time"]
+                    )
+                    * 1000
+                )
+            )
+    return user_score
+
+
+def is_user_allowed_to_submit_as_competition_submission(problem_id, user_id):
+    if mongodb_client.problems.find_one({"problem_id": problem_id})[
+        "is_part_of_competition"
+    ]:
+        contest_id = mongodb_client.problems.find_one({"problem_id": problem_id})[
+            "competition_id"
+        ]
+        contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+        if datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(
+            tzinfo=kolkata_tz
+        ) < datetime.now(tz=kolkata_tz):
+            return False
+        if datetime.strptime(contest["contest_start_time"], "%Y-%m-%dT%H:%M").replace(
+            tzinfo=kolkata_tz
+        ) > datetime.now(tz=kolkata_tz):
+            return False
+        if user_id not in contest["contest_statistics"]["contest_participants"]:
+            return False
+        return True
+
+
+def add_competition_submission(submission_id):
+    submission = mongodb_client.submissions.find_one({"submission_id": submission_id})
+    problem = mongodb_client.problems.find_one({"problem_id": submission["problem_id"]})
+    contest_id = problem["competition_id"]
+    contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+    user_id = submission["user_id"]
+    if is_user_allowed_to_submit_as_competition_submission(
+        submission["problem_id"], user_id
+    ):
+        # Update contest leaderboard which is an object
+        leaderboard = contest["contest_statistics"]["contest_leaderboard"]
+        if user_id not in leaderboard:
+            # Leaderboard is an object, so we need to update it
+            mongodb_client.contests.update_one(
+                {"contest_id": contest_id},
+                {
+                    "$set": {
+                        f"contest_statistics.contest_leaderboard.{user_id}": {
+                            "score": 0,
+                            "problems": {
+                                contest["contest_problems"]["easy_problem"]: {
+                                    "submissions_id": None,
+                                    "has_accepted_submission": False,
+                                    "number_of_incorrect_submissions": 0,
+                                },
+                                contest["contest_problems"]["medium_problem"]: {
+                                    "submissions_id": None,
+                                    "has_accepted_submission": False,
+                                    "number_of_incorrect_submissions": 0,
+                                },
+                                contest["contest_problems"]["hard_problem"]: {
+                                    "submissions_id": None,
+                                    "has_accepted_submission": False,
+                                    "number_of_incorrect_submissions": 0,
+                                },
+                            },
+                        }
+                    }
+                },
+            )
+
+        # If submission is accepted, update the leaderboard
+        if submission["submission_status"]["status_code"] == 3:
+            leaderboard = mongodb_client.contests.find_one({"contest_id": contest_id})[
+                "contest_statistics"
+            ]["contest_leaderboard"]
+            if (
+                leaderboard[user_id]["problems"][problem["problem_id"]][
+                    "has_accepted_submission"
+                ]
+                == False
+            ):
+                mongodb_client.contests.update_one(
+                    {"contest_id": contest_id},
+                    {
+                        "$set": {
+                            f"contest_statistics.contest_leaderboard.{user_id}.problems.{problem['problem_id']}": {
+                                "submissions_id": submission_id,
+                                "has_accepted_submission": True,
+                                "number_of_incorrect_submissions": leaderboard[user_id][
+                                    "problems"
+                                ][problem["problem_id"]][
+                                    "number_of_incorrect_submissions"
+                                ],
+                            }
+                        }
+                    },
+                )
+            else:
+                # If user has already submitted an accepted submission, update the leaderboard only if the new submission has a better score
+                if (
+                    mongodb_client.submissions.find_one(
+                        {
+                            "submission_id": leaderboard[user_id]["problems"][
+                                problem["problem_id"]
+                            ]["submissions_id"]
+                        }
+                    )["submission_status"]["time"]
+                    > submission["submission_status"]["time"]
+                ):
+                    mongodb_client.contests.update_one(
+                        {"contest_id": contest_id},
+                        {
+                            "$set": {
+                                f"contest_statistics.contest_leaderboard.{user_id}.problems.{problem['problem_id']}": {
+                                    "submissions_id": submission_id,
+                                    "has_accepted_submission": True,
+                                    "number_of_incorrect_submissions": leaderboard[
+                                        user_id
+                                    ]["problems"][problem["problem_id"]][
+                                        "number_of_incorrect_submissions"
+                                    ],
+                                }
+                            }
+                        },
+                    )
+
+            user_score = calculate_score(user_id, contest_id)
+
+            mongodb_client.contests.update_one(
+                {"contest_id": contest_id},
+                {
+                    "$set": {
+                        f"contest_statistics.contest_leaderboard.{user_id}.score": user_score
+                    }
+                },
+            )
+
+            return True
+
+        else:
+            leaderboard = mongodb_client.contests.find_one({"contest_id": contest_id})[
+                "contest_statistics"
+            ]["contest_leaderboard"]
+            # If submission is rejected, update the leaderboard
+            if (
+                leaderboard[user_id]["problems"][problem["problem_id"]][
+                    "has_accepted_submission"
+                ]
+                == False
+            ):
+                mongodb_client.contests.update_one(
+                    {"contest_id": contest_id},
+                    {
+                        "$set": {
+                            f"contest_statistics.contest_leaderboard.{user_id}.problems.{problem['problem_id']}": {
+                                "submissions_id": None,
+                                "has_accepted_submission": False,
+                                "number_of_incorrect_submissions": leaderboard[user_id][
+                                    "problems"
+                                ][problem["problem_id"]][
+                                    "number_of_incorrect_submissions"
+                                ]
+                                + 1,
+                            }
+                        }
+                    },
+                )
+
+            return True
+
+    return False
 
 
 # Frontend endpoints
@@ -118,17 +349,255 @@ def announcement(announcement_id):
 
 @app.route("/problems", methods=["GET"])
 def problems():
-    return render_template(
-        "problems.html", all_problems=list(mongodb_client.problems.find())
+    if session.get("is_authenticated") is None:
+        return redirect(url_for("login"))
+
+    all_problems = list(
+        mongodb_client.problems.aggregate(
+            [
+                {"$match": {"is_part_of_competition": True}},
+                {
+                    "$lookup": {
+                        "from": "contests",
+                        "localField": "competition_id",
+                        "foreignField": "contest_id",
+                        "as": "contest_details",
+                    }
+                },
+                {"$unwind": "$contest_details"},
+                {
+                    "$project": {
+                        "_id": 0,
+                        "problem_id": 1,
+                        "problem_title": 1,
+                        "problem_description": 1,
+                        "problem_level": 1,
+                        "problem_tags": 1,
+                        "created_at": 1,
+                        "is_visible": 1,
+                        "is_part_of_competition": 1,
+                        "competition_id": 1,
+                        "contest_title": "$contest_details.contest_title",
+                        "contest_start_time": "$contest_details.contest_start_time",
+                        "contest_end_time": "$contest_details.contest_end_time",
+                    }
+                },
+                {"$sort": {"contest_start_time": -1}},
+            ]
+        )
     )
+
+    visible_problems = []
+
+    for problem in all_problems:
+        if datetime.strptime(problem["contest_end_time"], "%Y-%m-%dT%H:%M").replace(
+            tzinfo=kolkata_tz
+        ) < datetime.now(tz=kolkata_tz):
+            visible_problems.append(problem)
+
+    return render_template("problems.html", all_problems=visible_problems)
 
 
 @app.route("/problems/<problem_id>", methods=["GET"])
 def problem(problem_id):
+    if session.get("is_authenticated") is None:
+        return redirect(url_for("login"))
     problem = mongodb_client.problems.find_one({"problem_id": problem_id})
     if problem:
-        return render_template("individual-problem.html", problem=problem)
+        top_submissions = list(
+            mongodb_client.submissions.aggregate(
+                [
+                    {
+                        "$match": {
+                            "problem_id": problem_id,
+                            "submission_status.status_code": 3,
+                            "is_removed": False,
+                        }
+                    },
+                    {
+                        "$sort": {"submission_status.time": 1}
+                    },  # Sort by fastest execution time (ascending)
+                    {
+                        "$group": {  # Group by user_id to ensure only one submission per user
+                            "_id": "$user_id",
+                            "submission_id": {
+                                "$first": "$_id"
+                            },  # Get the submission ID with the fastest time
+                            "problem_id": {"$first": "$problem_id"},
+                            "submission_status": {
+                                "$first": "$submission_status"
+                            },  # Fastest submission's status
+                            "language": {
+                                "$first": "$language"
+                            },  # Fastest submission's language
+                            "user_id": {"$first": "$user_id"},  # Retain the user_id
+                        }
+                    },
+                    {
+                        "$lookup": {
+                            "from": "users",  # Join with users collection to fetch user details
+                            "localField": "user_id",  # Field from submissions (grouped)
+                            "foreignField": "user_account.user_id",  # Field from users collection
+                            "as": "user_details",  # Resulting field with user details
+                        }
+                    },
+                    {"$unwind": "$user_details"},  # Flatten the user_details array
+                    {
+                        "$project": {
+                            "_id": 0,  # Exclude MongoDB's default ID
+                            "user_id": 1,
+                            "submission_id": 1,
+                            "problem_id": 1,
+                            "submission_status": 1,  # Includes the fastest submission's time
+                            "language": 1,
+                            "user_details.user_profile.display_name": 1,
+                            "user_details.user_profile.avatar_url": 1,
+                        }
+                    },
+                ]
+            )
+        )
+
+        if top_submissions is not None:
+            top_submissions.sort(key=lambda x: x["submission_status"]["time"])
+        if problem.get("is_visible") is False:
+            if problem.get("is_part_of_competition"):
+                if datetime.strptime(
+                    mongodb_client.contests.find_one(
+                        {"contest_id": problem.get("competition_id")}
+                    )["contest_end_time"],
+                    "%Y-%m-%dT%H:%M",
+                ).replace(tzinfo=kolkata_tz) < datetime.now(tz=kolkata_tz):
+                    mongodb_client.problems.update_one(
+                        {"problem_id": problem_id}, {"$set": {"is_visible": True}}
+                    )
+                    return render_template(
+                        "individual-problem.html",
+                        problem=problem,
+                        top_submissions=top_submissions,
+                    )
+                else:
+                    if datetime.strptime(
+                        mongodb_client.contests.find_one(
+                            {"contest_id": problem.get("competition_id")}
+                        )["contest_start_time"],
+                        "%Y-%m-%dT%H:%M",
+                    ).replace(tzinfo=kolkata_tz) < datetime.now(
+                        tz=kolkata_tz
+                    ) and session[
+                        "user"
+                    ][
+                        "user_account"
+                    ][
+                        "user_id"
+                    ] in [
+                        participant
+                        for participant in mongodb_client.contests.find_one(
+                            {"contest_id": problem.get("competition_id")}
+                        )["contest_statistics"]["contest_participants"]
+                    ]:
+                        return render_template(
+                            "individual-problem.html",
+                            problem=problem,
+                            top_submissions=top_submissions,
+                        )
+            return redirect(url_for("problems"))
+        return render_template(
+            "individual-problem.html", problem=problem, top_submissions=top_submissions
+        )
     return redirect(url_for("homepage"))
+
+
+@app.route("/contests", methods=["GET"])
+def contests():
+    return render_template(
+        "contests.html", all_contests=list(mongodb_client.contests.find({}))
+    )
+
+
+@app.route("/contests/<contest_id>", methods=["GET"])
+def contest(contest_id):
+    if session.get("is_authenticated") is None:
+        return redirect(url_for("login"))
+    has_contest_started = False
+    has_contest_ended = False
+    has_user_participated = False
+    contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+    if contest:
+        if datetime.strptime(
+            contest.get("contest_start_time"), "%Y-%m-%dT%H:%M"
+        ).replace(tzinfo=kolkata_tz) < datetime.now(tz=kolkata_tz):
+            has_contest_started = True
+        if datetime.strptime(contest.get("contest_end_time"), "%Y-%m-%dT%H:%M").replace(
+            tzinfo=kolkata_tz
+        ) < datetime.now(tz=kolkata_tz):
+            mongodb_client.problems.update_many(
+                {
+                    "problem_id": {
+                        "$in": [
+                            contest["contest_problems"]["easy_problem"],
+                            contest["contest_problems"]["medium_problem"],
+                            contest["contest_problems"]["hard_problem"],
+                        ]
+                    }
+                },
+                {"$set": {"is_visible": True}},
+            )
+            has_contest_ended = True
+        has_user_participated = session["user"]["user_account"]["user_id"] in [
+            participant
+            for participant in contest["contest_statistics"]["contest_participants"]
+        ]
+        contest_problems = mongodb_client.problems.find(
+            {
+                "problem_id": {
+                    "$in": [
+                        contest["contest_problems"]["easy_problem"],
+                        contest["contest_problems"]["medium_problem"],
+                        contest["contest_problems"]["hard_problem"],
+                    ]
+                }
+            }
+        )
+
+        # Sort the leaderboard based on score
+
+        contest_leaderboard = mongodb_client.contests.find_one(
+            {"contest_id": contest_id}
+        )["contest_statistics"]["contest_leaderboard"]
+
+
+        for user_id in contest_leaderboard:
+            contest_leaderboard[user_id]["problems_solved"] = sum(
+                [
+                    1
+                    for problem in contest_leaderboard[user_id]["problems"]
+                    if contest_leaderboard[user_id]["problems"][problem][
+                        "has_accepted_submission"
+                    ]
+                ]
+            )
+            contest_leaderboard[user_id]["profile"] = mongodb_client.users.find_one({"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1})
+
+        contest_leaderboard = dict(
+            sorted(
+                contest_leaderboard.items(),
+                key=lambda item: item[1]["score"],
+                reverse=True,
+            )
+        )
+
+
+        return render_template(
+            "individual-contest.html",
+            contest=contest,
+            has_contest_started=has_contest_started,
+            has_contest_ended=has_contest_ended,
+            has_user_participated=has_user_participated,
+            contest_problems=contest_problems,
+            contest_leaderboard=contest_leaderboard.items(),
+        )
+    return redirect(url_for("contests"))
 
 
 @app.route("/create-announcement", methods=["GET"])
@@ -151,6 +620,38 @@ def create_problem():
         and session["user"]["user_account"]["role"] == "admin"
     ):
         return render_template("create_problem.html")
+    return redirect(url_for("homepage"))
+
+
+@app.route("/create-contest", methods=["GET"])
+def create_contest():
+    if (
+        session.get("is_authenticated")
+        and session["user"]["user_account"]["role"] == "admin"
+    ):
+        easy_problems = list(
+            mongodb_client.problems.find(
+                {"problem_level": "easy", "is_part_of_competition": False}
+            )
+        )
+        medium_problems = list(
+            mongodb_client.problems.find(
+                {"problem_level": "medium", "is_part_of_competition": False}
+            )
+        )
+        hard_problems = list(
+            mongodb_client.problems.find(
+                {"problem_level": "hard", "is_part_of_competition": False}
+            )
+        )
+        previous_contests = list(mongodb_client.contests.find({}, {"_id": 0}))
+        return render_template(
+            "create_contest.html",
+            easy_problems=easy_problems,
+            medium_problems=medium_problems,
+            hard_problems=hard_problems,
+            previous_contests=previous_contests,
+        )
     return redirect(url_for("homepage"))
 
 
@@ -179,7 +680,6 @@ def authenticate():
 
 @app.route("/api/v1/auth/external/_handler", methods=["GET"])
 def external_handler():
-
     if session.get("is_authenticated"):
         return redirect(url_for("homepage"))
 
@@ -417,12 +917,6 @@ def create_problem_api():
                         "total_submissions": 0,
                         "total_accepted_submissions": 0,
                         "total_rejected_submissions": 0,
-                        "total_runtime_error_submissions": 0,
-                        "total_time_limit_exceeded_submissions": 0,
-                        "total_memory_limit_exceeded_submissions": 0,
-                        "total_compilation_error_submissions": 0,
-                        "total_internal_error_submissions": 0,
-                        "total_other_error_submissions": 0,
                     },
                 }
             )
@@ -450,8 +944,12 @@ def create_submission():
                 # Prepare data to send to Judge0 in base64 encoded format
                 judge0_payload = {
                     "source_code": code,
-                    "stdin": base64.b64encode(problem.get("problem_stdin", "").encode()).decode(),
-                    "expected_output": base64.b64encode(problem.get("problem_stdout", "").encode()).decode(),
+                    "stdin": base64.b64encode(
+                        problem.get("problem_stdin", "").encode()
+                    ).decode(),
+                    "expected_output": base64.b64encode(
+                        problem.get("problem_stdout", "").encode()
+                    ).decode(),
                     "language_id": get_language_id(
                         request.json.get("language", "python")
                     ),
@@ -461,7 +959,10 @@ def create_submission():
                 judge0_response = requests.post(
                     "https://judge0-ce.p.sulu.sh/submissions?base64_encoded=true",
                     json=judge0_payload,
-                    headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.getenv("API_KEY")},
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + os.getenv("API_KEY"),
+                    },
                 )
 
                 # Check if the submission was successful
@@ -482,8 +983,13 @@ def create_submission():
                                 "time": 0,
                                 "memory": 0,
                             },
+                            "user_activity": {
+                                "key_strokes": request.json.get("key_strokes", 0),
+                                "focus_events": request.json.get("focus_events", 0),
+                            },
                             "created_at": datetime.now(),
                             "updated_at": datetime.now(),
+                            "is_removed": False,
                         }
                     )
 
@@ -557,21 +1063,24 @@ def get_submission(submission_id):
         submission = mongodb_client.submissions.find_one(
             {"submission_id": submission_id}
         )
-        if submission and submission["user_id"] == session["user"]["user_account"]["user_id"]:
+        if (
+            submission
+            and submission["user_id"] == session["user"]["user_account"]["user_id"]
+        ):
 
             judge0_response = requests.get(
                 f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}",
                 headers={"Authorization": "Bearer " + os.getenv("API_KEY")},
             )
 
-            print(judge0_response.json())
             if judge0_response.status_code == 200:
-                number_of_passed_test_cases = compare_output(judge0_response.json()["stdout"], submission["problem_id"])
 
+                number_of_passed_test_cases = compare_output(
+                    judge0_response.json()["stdout"], submission["problem_id"]
+                )
 
                 submission_status = judge0_response.json()
                 submission_status["stdout"] = "-- Hidden --"
-
 
                 submission["submission_status"] = {
                     "status_code": submission_status["status"]["id"],
@@ -582,11 +1091,7 @@ def get_submission(submission_id):
                 }
                 mongodb_client.submissions.update_one(
                     {"submission_id": submission_id},
-                    {
-                        "$set": {
-                            "submission_status": submission["submission_status"]
-                        }
-                    },
+                    {"$set": {"submission_status": submission["submission_status"]}},
                 )
                 if submission_status["status"]["id"] == 3:
                     mongodb_client.problems.update_one(
@@ -597,13 +1102,14 @@ def get_submission(submission_id):
                             }
                         },
                     )
+                    add_competition_submission(submission_id)
                     return jsonify(
                         {
                             "response_code": 200,
                             "data": submission_status,
                             "identifier": str(uuid.uuid4()),
                         }
-                        )
+                    )
                 elif submission_status["stdout"] != None:
                     mongodb_client.problems.update_one(
                         {"problem_id": submission["problem_id"]},
@@ -613,7 +1119,11 @@ def get_submission(submission_id):
                             }
                         },
                     )
-                    submission_status["number_of_passed_test_cases"] = number_of_passed_test_cases
+                    submission_status[
+                        "number_of_passed_test_cases"
+                    ] = number_of_passed_test_cases
+                    add_competition_submission(submission_id)
+
                     return jsonify(
                         {
                             "response_code": 200,
@@ -622,6 +1132,8 @@ def get_submission(submission_id):
                         }
                     )
                 else:
+                    add_competition_submission(submission_id)
+
                     return (
                         jsonify(
                             {
@@ -632,7 +1144,7 @@ def get_submission(submission_id):
                         ),
                         200,
                     )
-                
+
         return (
             jsonify(
                 {
@@ -666,6 +1178,145 @@ def get_language_id(language):
         "typescript": 74,  # TypeScript
     }
     return language_map.get(language, 34)  # Default to Python
+
+
+@app.route("/api/v1/create-contest", methods=["POST"])
+def create_contest_api():
+    if (
+        session.get("is_authenticated")
+        and session["user"]["user_account"]["role"] == "admin"
+    ):
+        contest_title = request.form.get("contest_title")
+        contest_start_time = request.form.get("contest_start_time")
+        contest_end_time = request.form.get("contest_end_time")
+        contest_easy_problem = request.form.get("contest_easy_problem")
+        contest_medium_problem = request.form.get("contest_medium_problem")
+        contest_hard_problem = request.form.get("contest_hard_problem")
+        contest_body = request.form.get("ckeditor")
+
+        contest_id = str(uuid.uuid4())
+
+        if (
+            contest_title
+            and contest_start_time
+            and contest_end_time
+            and contest_body
+            and contest_easy_problem
+            and contest_medium_problem
+            and contest_hard_problem
+        ):
+            mongodb_client.contests.insert_one(
+                {
+                    "contest_id": contest_id,
+                    "contest_title": contest_title,
+                    "contest_start_time": contest_start_time,
+                    "contest_end_time": contest_end_time,
+                    "contest_problems": {
+                        "easy_problem": contest_easy_problem,
+                        "medium_problem": contest_medium_problem,
+                        "hard_problem": contest_hard_problem,
+                    },
+                    "contest_description": contest_body,
+                    "created_at": datetime.now(),
+                    "contest_statistics": {
+                        "total_participants": 0,
+                        "total_accepted_submissions": {
+                            contest_easy_problem: 0,
+                            contest_medium_problem: 0,
+                            contest_hard_problem: 0,
+                        },
+                        "total_rejected_submissions": {
+                            contest_easy_problem: 0,
+                            contest_medium_problem: 0,
+                            contest_hard_problem: 0,
+                        },
+                        "contest_participants": [],
+                        "contest_leaderboard": [],
+                    },
+                }
+            )
+            mongodb_client.problems.update_one(
+                {"problem_id": contest_easy_problem},
+                {
+                    "$set": {
+                        "is_part_of_competition": True,
+                        "competition_id": contest_id,
+                    }
+                },
+            )
+
+            mongodb_client.problems.update_one(
+                {"problem_id": contest_medium_problem},
+                {
+                    "$set": {
+                        "is_part_of_competition": True,
+                        "competition_id": contest_id,
+                    }
+                },
+            )
+
+            mongodb_client.problems.update_one(
+                {"problem_id": contest_hard_problem},
+                {
+                    "$set": {
+                        "is_part_of_competition": True,
+                        "competition_id": contest_id,
+                    }
+                },
+            )
+
+            return redirect(url_for("create_contest"))
+        return (
+            jsonify(
+                {
+                    "response_code": 400,
+                    "message": "Contest title, start time, end time and body are required",
+                    "identifier": str(uuid.uuid4()),
+                }
+            ),
+            400,
+        )
+
+
+# api/v1/contest/register/{{ contest.contest_id }}
+
+
+@app.route("/api/v1/contest/register/<contest_id>", methods=["POST"])
+def register_contest(contest_id):
+    if session.get("is_authenticated"):
+        contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+
+        if contest:
+            if session["user"]["user_account"]["user_id"] not in [
+                participant
+                for participant in contest["contest_statistics"]["contest_participants"]
+            ]:
+                mongodb_client.contests.update_one(
+                    {"contest_id": contest_id},
+                    {
+                        "$push": {
+                            "contest_statistics.contest_participants": session["user"][
+                                "user_account"
+                            ]["user_id"]
+                        },
+                        "$inc": {
+                            "contest_statistics.total_participants": 1,
+                        },
+                    },
+                )
+                return redirect(url_for("contest", contest_id=contest_id))
+            return redirect(url_for("contest", contest_id=contest_id))
+        return redirect(url_for("contests"))
+    return (
+        jsonify(
+            {
+                "response_code": 401,
+                "message": "Unauthorized",
+                "identifier": str(uuid.uuid4()),
+            }
+        ),
+        401,
+    )
 
 
 if __name__ == "__main__":

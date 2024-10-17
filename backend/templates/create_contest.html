@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Contest | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="home_primary">
+        <form action="/api/v1/create-contest" method="POST" class="form">
+          <p class="form-title">Create Contest</p>
+          <div class="form-group">
+            <label for="contest_title">Contest Title</label>
+            <input type="text" name="contest_title" id="announcement_title" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="contest_start_time">Contest Start Time</label>
+            <input type="datetime-local" name="contest_start_time" id="contest_start_time" class="form-control"
+              required>
+          </div>
+          <div class="form-group">
+            <label for="contest_end_time">Contest End Time</label>
+            <input type="datetime-local" name="contest_end_time" id="contest_end_time" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="contest_problems">Contest Easy Problem</label>
+            <select name="contest_easy_problem" id="contest_easy_problem" class="form-control" required>
+              <option value="" selected disabled>Select a problem</option>
+              {% for problem in easy_problems %}
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="contest_problems">Contest Medium Problem</label>
+            <select name="contest_medium_problem" id="contest_medium_problem" class="form-control" required>
+              <option value="" selected disabled>Select a problem</option>
+              {% for problem in medium_problems %}
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="contest_problems">Contest Hard Problem</label>
+            <select name="contest_hard_problem" id="contest_hard_problem" class="form-control" required>
+              <option value="" selected disabled>Select a problem</option>
+              {% for problem in hard_problems %}
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="announcement_body">Contest Body</label>
+            {{ ckeditor.create() }}
+          </div>
+          <div class="form-group form-group--submit">
+            <button type="submit" class="btn btn--primary">Create Contest</button>
+          </div>
+        </form>
+        <div class="previous_announcements">
+          <p class="previous_announcements_title">Previous Contests</p>
+          <div class="previous_announcements_body">
+            {% for contest in previous_contests %}
+            <div class="announcement contest">
+              <a class="announcement_title content_title" href="/contests/{{ contest.contest_id }}">{{ contest.contest_title }} - {{ format_date(contest.contest_start_time, "long") }}</a>
+            </div>
+            {% else %}
+            <p>No previous contests</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% include 'private/sidebar.html' %}
+
+    </div>
+  </main>
+
+
+</body>
+
+</html>

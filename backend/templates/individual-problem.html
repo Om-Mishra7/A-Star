@@ -52,6 +52,31 @@
           <div class="output-header">Result</div>
           <p id="output" class="output">No output yet, submit your code to see the result.</p>
         </div>
+        <div class="top-submissions">
+          <div class="top-submissions-header">Top Submissions</div>
+          <div class="top-submissions-list">
+            <table class="top-submissions-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Username</th>
+                  <th>Language</th>
+                  <th>Time</th>
+                  <th>Memory</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for submission in top_submissions %}
+                <tr onclick="window.location.href='/profile/{{ submission.user_id }}'" style="cursor: pointer;">
+                  <td>{{ loop.index }}</td>
+                  <td id="username-field"><img src={{ submission.user_details.user_profile.avatar_url }} style="width: 20px; height: 20px; border-radius: 5px; margin-right: 5px;">{{ submission.user_details.user_profile.display_name }}</td>
+                  <td>{{ submission.language | capitalize }}</td>
+                  <td>{{ submission.submission_status.time }}s</td>
+                  <td>{{ submission.submission_status.memory }}KB</td>
+                </tr>
+                {% endfor %}
+        </div>
+      </div>
       </div>
     </div>
   </main>

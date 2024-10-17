@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ contest.contest_title }} | A*</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.26.1/min/vs/loader.min.js" defer></script>
+  <script src="/static/javascript/monaco-editor.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="contest-metadata">
+        <h1>{{ contest.contest_title }}</h1>
+        {% if has_contest_ended %}
+        <blockquote class="contest-ended">Contest has ended, please refer to the leaderboard for the results.</blockquote>
+        {% endif %}
+        <div class="contest-description" style="margin-bottom: 20px;margin-top: 20px;">
+          {{ contest.contest_description | safe }}
+        </div>
+        {% if not has_contest_started %}
+        <div class="contest-start-time">Contest starts in <span id="countdown" data-countdown="{{ contest.contest_start_time }}"></span></div>
+        {% endif %}
+        {% if not has_contest_started and not has_user_participated %}
+        <div class="contest-register">
+          <form action="/api/v1/contest/register/{{ contest.contest_id }}" method="POST">
+            <button type="submit" class="register-button">Register</button>
+          </form>
+        </div>
+        {% endif %}
+        {% if not has_contest_started and has_user_participated %}
+        <div class="contest-register">
+          <blockquote>You are already registered for this contest, check back when the contest starts.</blockquote>
+        </div>
+        {% endif %}
+        {% if has_contest_started and not has_user_participated %}
+        <blockquote class="cannot-participate">The contest has already started, you cannot participate now but you can still register for the next contest.</blockquote>
+        {% endif %}
+        {% if has_contest_started and has_user_participated %}
+          <div class="contest-problems">
+                <div class="contest-problems-header">Problems</div>
+                <div class="contest-problems-list">
+                  <table class="contest-problems-table">
+                    <thead>
+                      <tr>
+                        <th>Problem</th>
+                        <th>Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for problem in contest_problems %}
+                      <tr>
+                        <td><a href="/problems/{{ problem.problem_id }}">{{ problem.problem_title }}</a></td>
+                        <td>{{ 20 if problem.problem_level == "easy" else 30 if problem.problem_level == "medium" else 45 if problem.problem_level == "hard" else 0 }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+          </div>
+        {% endif %}
+
+      </div>
+        <div class="contest-leaderboard">
+          <div class="leaderboard-header">Leaderboard</div>
+          <div class="leaderboard-list">
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Username</th>
+                  <th>Solved</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user_id, user in contest_leaderboard %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td style="text-align: left;display: flex;align-items: center;"><img src="{{ user.profile.user_profile.avatar_url }}" alt="avatar" class="avatar"
+                    style="width: 20px;height: 20px;border-radius: 5px; margin-right: 5px;">{{ user.profile.user_profile.display_name }}
+                  </td>
+                  <td>{{ user.problems_solved }}/3</td>
+                  <td>{{ user.score }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    const countdown = document.getElementById('countdown');
+    const countdownTime = countdown.getAttribute('data-countdown');
+    const countdownDate = new Date(countdownTime).getTime();
+
+    const x = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = countdownDate - now;
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      countdown.innerHTML = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+      if (distance < 0) {
+        clearInterval(x);
+        window.location.reload();
+      }
+    }, 1000);
+  </script>
+
+
+</body>
+
+</html>

@@ -25,19 +25,21 @@
               <th>ID</th>
               <th>Title</th>
               <th>Difficulty</th>
-              <th>Solved</th>
+              <th>Solved %</th>
               </tr>
           </thead>
           <tbody>
             {% for problem in all_problems %}
             <tr onclick="window.location='/problems/{{ problem.problem_id }}';" style="cursor: pointer;">
-              <td>{{(problem._id | string)[-4:] | capitalize}}</td>
+              <td>{{(problem._id | string)[-4:] | upper}}</td>
               <td class="problem_title">{{ problem.problem_title }}<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="undefined">
             <path
                   d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z" />
       </svg></td>
               <td>{{ problem.problem_level | capitalize }}</td>
-              <td>{{ problem.problem_statistics.total_accepted_submissions }}</td>
+              <!-- Set max deciaml to 1 -->
+<td>{{ '{:,.1f}%'.format(((problem.problem_statistics.total_accepted_submissions | int) /
+  (problem.problem_statistics.total_submissions | int) * 100)) }}</td>
             </tr>
             {% endfor %}
           </tbody>

@@ -2,8 +2,8 @@
   <div class="home_sidebar_item">
     <p class="home_sidebar_title">Upcoming Contests</p>
     <div class="home_sidebar_body">
-      {% for contest in contests %}
-      <a href="/contests/{{ contest.contest_id }}">{{ contest.contest_name }}</a>
+      {% for contest in upcoming_contests %}
+      <a href="/contests/{{ contest.contest_id }}">{{ contest.contest_title }}</a>
       {% else %}
       <p>No upcoming contests</p>
       {% endfor %}
