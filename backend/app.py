@@ -3,6 +3,7 @@ import uuid
 import requests
 from datetime import datetime
 import base64
+import random
 from collections import defaultdict
 import requests
 import redis
@@ -1014,7 +1015,7 @@ def create_submission():
                     json=judge0_payload,
                     headers={
                         "Content-Type": "application/json",
-                        "Authorization": "Bearer " + os.getenv("API_KEY"),
+                        "Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(",")),
                     },
                 )
 
@@ -1123,7 +1124,7 @@ def get_submission(submission_id):
 
             judge0_response = requests.get(
                 f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}",
-                headers={"Authorization": "Bearer " + os.getenv("API_KEY")},
+                headers={"Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(","))},
             )
 
             if judge0_response.status_code == 200:
