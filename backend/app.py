@@ -3,6 +3,7 @@ import uuid
 import requests
 from datetime import datetime
 import base64
+from collections import defaultdict
 import requests
 import redis
 from dotenv import load_dotenv
@@ -89,6 +90,7 @@ def inject_global_vars():
             ).replace(tzinfo=kolkata_tz)
             > datetime.now(tz=kolkata_tz)
         ),
+        global_leaderboard= calculate_global_leaderboard(),
     )
 
 
@@ -111,6 +113,34 @@ def format_date():
             return date.strftime("%B %d, %Y %I:%M %p")
 
     return dict(format_date=format_date)
+
+def calculate_global_leaderboard():
+    # Create a dictionary to store the aggregated scores
+    global_leaderboard = defaultdict(lambda: {"score": 0, "problems_solved": 0})
+
+    # Iterate through all contests
+    for contest in mongodb_client.contests.find({}, {"_id": 0, "contest_end_time": 1, "contest_statistics": 1}):
+        # Convert contest end time to a datetime object
+        contest_end_time = datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz)
+
+        # Only consider contests that have ended
+        if contest_end_time < datetime.now(tz=kolkata_tz):
+            contest_leaderboard = contest["contest_statistics"]["contest_leaderboard"]
+            
+            # Iterate through each user in the contest leaderboard
+            for user_id, user_data in contest_leaderboard.items():
+                global_leaderboard[user_id]["score"] += user_data["score"]
+                global_leaderboard[user_id]["problems_solved"] += sum(
+                    1 for problem in user_data["problems"] 
+                    if user_data["problems"][problem]["has_accepted_submission"]
+                )
+
+    # Convert the global leaderboard to a sorted list by score
+    for user_id in global_leaderboard:
+        global_leaderboard[user_id]["profile"] = mongodb_client.users.find_one({"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1})
+    sorted_global_leaderboard = sorted(global_leaderboard.items(), key=lambda x: x[1]["score"], reverse=True)
+
+    return sorted_global_leaderboard
 
 
 def calculate_score(user_id, contest_id):
@@ -323,6 +353,29 @@ def add_competition_submission(submission_id):
 def homepage():
     return render_template("home.html")
 
+@app.route("/platform-information", methods=["GET"])
+def platform_information():
+    return jsonify(
+        {
+            "response_code": 200,
+            "data": {
+                "platform_name": "A*",
+                "platform_version": "1.0.0",
+                "platform_statistic": {
+                    "total_users": mongodb_client.users.count_documents({}),
+                    "total_problems": mongodb_client.problems.count_documents({}),
+                    "total_contests": mongodb_client.contests.count_documents({}),
+                    "total_submissions": mongodb_client.submissions.count_documents({}),
+                },
+                "platform_devlopers": [
+                    {
+                        "name": "Om Mishra",
+                        "email": "hello@om-mishra.com",
+                    }]
+            },
+            "identifier": str(uuid.uuid4()),
+        }
+    )
 
 @app.route("/login", methods=["GET"])
 def login():

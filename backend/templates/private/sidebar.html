@@ -12,11 +12,34 @@
   <div class="home_sidebar_item">
     <p class="home_sidebar_title">Leaderboard (Global)</p>
     <div class="home_sidebar_body">
-      {% for user in leaderboard %}
-      <p>{{ user.username }} - {{ user.points }}</p>
+      <table>
+        <thead>
+          <tr>
+          <th>Rank</th>
+          <th>Username</th>
+          <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          </tbody>
+      {% for user in global_leaderboard %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td style="display: flex; align-items: center;">
+          <img
+            src="{{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}"
+            alt="avatar" class="avatar" style="width: 20px; height: 20px; border-radius: 10px; margin-right: 5px;">
+          {{ user[1].profile.user_profile.display_name if user[1].profile and user[1].profile.user_profile else 'Anonymous' }}
+        </td>
+        <td>{{ user[1]["score"] }}</td>
+      </tr>
       {% else %}
-      <p>No users in leaderboard</p>
+      <tr>
+        <td colspan="3">No users</td>
+      </tr>
       {% endfor %}
+      </tbody>
+      </table>
     </div>
   </div>
   <div class="home_sidebar_item">
