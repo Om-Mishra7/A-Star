@@ -486,6 +486,9 @@ def problems():
         ) < datetime.now(tz=kolkata_tz):
             visible_problems.append(problem)
 
+    if session["user"]["user_account"]["role"] == "admin":
+        return render_template("problems.html", all_problems=all_problems)
+
     return render_template("problems.html", all_problems=visible_problems)
 
 
@@ -1011,7 +1014,8 @@ def create_problem_api():
                     },
                 }
             )
-            return redirect(url_for("create_problem"))
+            
+            return redirect(f"/problems/{problem_id}")
         return (
             jsonify(
                 {
