@@ -162,6 +162,18 @@ require(["vs/editor/editor.main"], function () {
           const memory = data.data.memory + " KB";
           const result = data.data.status.description;
 
+          if (time === null) {
+            time = "N/A";
+          }
+
+          if (memory === null) {
+            memory = "N/A";
+          } 
+
+          if (data.data.number_of_passed_test_cases === undefined) {
+            data.data.number_of_passed_test_cases = "N/A";
+          }
+
           if (data.data.stderr) {
             const stderr = data.data.stderr;
             document.getElementById('output').classList.remove('correct-answer');
