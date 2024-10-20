@@ -487,7 +487,7 @@ def problems():
             visible_problems.append(problem)
 
     if session["user"]["user_account"]["role"] == "admin":
-        return render_template("problems.html", all_problems=all_problems)
+        return render_template("problems.html", all_problems=list(mongodb_client.problems.find({}, {"problem_stdin": 0, "problem_stdout": 0})))
 
     return render_template("problems.html", all_problems=visible_problems)
 
