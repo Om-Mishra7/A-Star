@@ -1,11 +1,12 @@
 import os
 import uuid
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import random
 from collections import defaultdict
 import requests
+import difflib
 import redis
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -92,7 +93,13 @@ def inject_global_vars():
             > datetime.now(tz=kolkata_tz)
         ),
         global_leaderboard= calculate_global_leaderboard(),
-    )
+        past_contests = list(
+            contest for contest in mongodb_client.contests.find({}, {"_id": 0}) 
+            if datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz) 
+            < datetime.now(tz=kolkata_tz)
+        ),
+        submissions_chart = generate_submissions_chart(),
+        )
 
 
 @app.context_processor
@@ -143,6 +150,35 @@ def calculate_global_leaderboard():
 
     return sorted_global_leaderboard
 
+def generate_submissions_chart():
+    # Dictonary of last seven days with the date as the key and the number of submissions as the value
+    submissions_chart = defaultdict(int)
+
+    # Get the current date
+    current_date = datetime.now(tz=kolkata_tz)
+
+    for i in range(6, -1, -1):
+        # Get the date of the current iteration
+        date = current_date - timedelta(days=i)
+
+        # Get the submissions for the current date
+        submissions = mongodb_client.submissions.count_documents(
+            {
+                "created_at": {
+                    "$gte": date.replace(hour=0, minute=0, second=0),
+                    "$lt": date.replace(hour=23, minute=59, second=59),
+                }
+            }
+        )
+
+        # Add the submissions to the chart
+        submissions_chart[date.strftime("%d-%m")] = submissions
+
+    return submissions_chart
+
+def is_code_similar(submitted_code, existing_code, threshold=0.8):
+    similarity_ratio = difflib.SequenceMatcher(None, submitted_code, existing_code).ratio()
+    return similarity_ratio >= threshold    
 
 def calculate_score(user_id, contest_id):
     contest = mongodb_client.contests.find_one({"contest_id": contest_id})
@@ -421,7 +457,7 @@ def problems():
                 {"$unwind": "$contest_details"},
                 {
                     "$project": {
-                        "_id": 0,
+                        "_id": 1,
                         "problem_id": 1,
                         "problem_title": 1,
                         "problem_description": 1,
@@ -431,6 +467,7 @@ def problems():
                         "is_visible": 1,
                         "is_part_of_competition": 1,
                         "competition_id": 1,
+                        "problem_statistics": 1,
                         "contest_title": "$contest_details.contest_title",
                         "contest_start_time": "$contest_details.contest_start_time",
                         "contest_end_time": "$contest_details.contest_end_time",
@@ -989,6 +1026,7 @@ def create_problem_api():
 
 @app.route("/api/v1/submissions", methods=["POST"])
 def create_submission():
+    is_similar = False
     if session.get("is_authenticated"):
         problem_id = request.json.get("problem_id")
         code = request.json.get("code")
@@ -1021,8 +1059,22 @@ def create_submission():
 
                 # Check if the submission was successful
                 if judge0_response.status_code == 201:
-
                     submission_id = str(uuid.uuid4())
+                    
+                    # Check if there's similar code in previous submissions
+                    existing_submissions = mongodb_client.submissions.find({
+                        "problem_id": problem_id,
+                        "user_id": session["user"]["user_account"]["user_id"],
+                    })
+                    
+                    for submission in existing_submissions:
+                        existing_code = submission["code"]
+                        if is_code_similar(code, existing_code):
+                            is_similar = True
+                            break
+                            
+                    
+                    # Proceed with inserting the submission
                     mongodb_client.submissions.insert_one(
                         {
                             "submission_id": submission_id,
@@ -1041,6 +1093,7 @@ def create_submission():
                                 "key_strokes": request.json.get("key_strokes", 0),
                                 "focus_events": request.json.get("focus_events", 0),
                             },
+                            "is_similar": is_similar,
                             "created_at": datetime.now(),
                             "updated_at": datetime.now(),
                             "is_removed": False,
@@ -1373,5 +1426,42 @@ def register_contest(contest_id):
     )
 
 
-if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+@app.errorhandler(404)
+def page_not_found(e):
+    return jsonify(
+        {
+            "response_code": 404,
+            "message": "Page not found",
+            "identifier": str(uuid.uuid4()),
+        }
+    ), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return jsonify(
+        {
+            "response_code": 500,
+            "message": "Internal server error",
+            "identifier": str(uuid.uuid4()),
+        }
+    ), 500
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify(
+        {
+            "response_code": 405,
+            "message": "Method not allowed",
+            "identifier": str(uuid.uuid4()),
+        }
+    ), 405
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify(
+        {
+            "response_code": 400,
+            "message": "Bad request",
+            "identifier": str(uuid.uuid4()),
+        }
+    ), 400

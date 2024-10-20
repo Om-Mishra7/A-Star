@@ -82,6 +82,31 @@
   </main>
 
   <script src="/static/javascript/monaco-editor.js" defer></script>
+  <script>
+    // Check on resize and on load if mobile and make everything display none and show a message
+    function checkMobile() {
+      if (window.innerWidth < 768) {
+        document.querySelector('.problem-metadata').style.display = 'none';
+        document.querySelector('.top-submissions').style.display = 'none';
+        document.querySelector('.output-result').style.display = 'none';
+        document.querySelector('.editor-header').style.display = 'none';
+        document.querySelector('.problem-editor').style.justifyContent = 'center';
+        document.querySelector('.problem-editor').style.alignItems = 'center';
+        document.querySelector('.problem-editor').style.height = '100vh';
+        document.querySelector('.problem-editor').style.width = '100vw';
+        document.querySelector('.problem-editor').style.textAlign = 'center';
+        document.querySelector('.problem-editor').innerHTML = '<h1 style="font-size: 24px;">Please use a desktop device to view this page.</h1>';
+      }
+      else {
+        if (document.querySelector('.problem-editor').innerHTML === '<h1 style="font-size: 24px;">Please use a desktop device to view this page.</h1>') {
+          window.location.reload();
+        }
+      }
+    }
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+  </script>
 
 </body>
 
