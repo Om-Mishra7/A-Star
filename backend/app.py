@@ -68,6 +68,15 @@ ckeditor = CKEditor(app)
 # Connect to MongoDB
 mongodb_client = MongoClient(os.getenv("MONGODB_URI"))["communitycompetitionprod"]
 
+# Middleware
+
+@app.after_request
+def headers(response):
+    if request.path.startswith("/static/"):
+        response.cache_control.max_age = 31536000
+    return response
+
+
 # App context processors
 @app.context_processor
 def inject_global_vars():
@@ -219,7 +228,6 @@ def calculate_score(user_id, contest_id):
             )
     return user_score
 
-
 def is_user_allowed_to_submit_as_competition_submission(problem_id, user_id):
     if mongodb_client.problems.find_one({"problem_id": problem_id})[
         "is_part_of_competition"
@@ -239,7 +247,6 @@ def is_user_allowed_to_submit_as_competition_submission(problem_id, user_id):
         if user_id not in contest["contest_statistics"]["contest_participants"]:
             return False
         return True
-
 
 def add_competition_submission(submission_id):
     submission = mongodb_client.submissions.find_one({"submission_id": submission_id})
