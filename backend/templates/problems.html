@@ -38,8 +38,14 @@
       </svg></td>
               <td>{{ problem.problem_level | capitalize }}</td>
               <!-- Set max deciaml to 1 -->
-<td>{{ '{:,.1f}%'.format(((problem.problem_statistics.total_accepted_submissions | int) /
-  (problem.problem_statistics.total_submissions | int) * 100)) }}</td>
+<td>
+  {% if problem.problem_statistics.total_submissions | int > 0 %}
+  {{ '{:,.1f}%'.format(((problem.problem_statistics.total_accepted_submissions | int) /
+  (problem.problem_statistics.total_submissions | int) * 100)) }}
+  {% else %}
+  N/A
+  {% endif %}
+</td>
             </tr>
             {% endfor %}
           </tbody>
