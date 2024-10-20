@@ -1198,7 +1198,11 @@ def get_submission(submission_id):
                 )
 
                 submission_status = judge0_response.json()
-                submission_status["stdout"] = "-- Hidden --"
+                if session["user"]["user_account"]["role"] != "admin":
+                    submission_status["stdout"] = "-- Hidden --"
+                    submission_status["stderr"] = "-- Hidden --"
+                    submission_status["compile_output"] = "-- Hidden --"
+                
 
                 submission["submission_status"] = {
                     "status_code": submission_status["status"]["id"],
@@ -1237,6 +1241,9 @@ def get_submission(submission_id):
                             }
                         },
                     )
+                    if session["user"]["user_account"]["role"] != "admin":
+                        submission_status["stdout"] = "-- Hidden --"
+
                     submission_status[
                         "number_of_passed_test_cases"
                     ] = number_of_passed_test_cases
