@@ -1068,6 +1068,8 @@ def create_submission():
                     },
                 )
 
+                print(judge0_response.json())
+
                 # Check if the submission was successful
                 if judge0_response.status_code == 201:
                     submission_id = str(uuid.uuid4())
@@ -1187,9 +1189,11 @@ def get_submission(submission_id):
         ):
 
             judge0_response = requests.get(
-                f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}",
+                f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}?base64_encoded=true&fields=stdout,stderr,status,time,memory",
                 headers={"Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(","))},
             )
+
+            print(judge0_response.json())
 
             if judge0_response.status_code == 200:
 
@@ -1483,3 +1487,7 @@ def bad_request(e):
             "identifier": str(uuid.uuid4()),
         }
     ), 400
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=8080)
