@@ -1187,7 +1187,7 @@ def get_submission(submission_id):
         ):
 
             judge0_response = requests.get(
-                f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}?base64_encoded=true&fields=stdout,stderr,status,time,memory",
+                f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}?fields=stdout,stderr,status,time,memory",
                 headers={"Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(","))},
             )
 
