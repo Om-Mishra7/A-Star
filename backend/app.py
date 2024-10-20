@@ -554,6 +554,13 @@ def problem(problem_id):
 
         if top_submissions is not None:
             top_submissions.sort(key=lambda x: x["submission_status"]["time"])
+        if session["user"]["user_account"]["role"] == "admin":
+            return render_template(
+                "individual-problem.html",
+                problem=problem,
+                top_submissions=top_submissions,
+            )
+        
         if problem.get("is_visible") is False:
             if problem.get("is_part_of_competition"):
                 if datetime.strptime(
