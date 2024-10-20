@@ -10,7 +10,7 @@ import difflib
 import redis
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from flask import Flask, request, jsonify, session, redirect, url_for, render_template
+from flask import Flask, request, jsonify, session, redirect, url_for, render_template, abort
 from flask_session import Session
 from flask_cors import CORS
 from flask_ckeditor import CKEditor
@@ -615,16 +615,18 @@ def contests():
         "contests.html", all_contests=list(mongodb_client.contests.find({}))
     )
 
-
 @app.route("/contests/<contest_id>", methods=["GET"])
 def contest(contest_id):
     if session.get("is_authenticated") is None:
         return redirect(url_for("login"))
+    
     has_contest_started = False
     has_contest_ended = False
     has_user_participated = False
+    
     contest = mongodb_client.contests.find_one({"contest_id": contest_id})
     if contest:
+        # Check contest start and end time
         if datetime.strptime(
             contest.get("contest_start_time"), "%Y-%m-%dT%H:%M"
         ).replace(tzinfo=kolkata_tz) < datetime.now(tz=kolkata_tz):
@@ -645,10 +647,13 @@ def contest(contest_id):
                 {"$set": {"is_visible": True}},
             )
             has_contest_ended = True
+        
+        # Check if user has participated
         has_user_participated = session["user"]["user_account"]["user_id"] in [
             participant
             for participant in contest["contest_statistics"]["contest_participants"]
         ]
+        
         contest_problems = mongodb_client.problems.find(
             {
                 "problem_id": {
@@ -661,25 +666,32 @@ def contest(contest_id):
             }
         )
 
-        # Sort the leaderboard based on score
-
+        # Retrieve the leaderboard
         contest_leaderboard = mongodb_client.contests.find_one(
             {"contest_id": contest_id}
         )["contest_statistics"]["contest_leaderboard"]
 
+        # Ensure contest_leaderboard is a dictionary (if it's a list)
+        if isinstance(contest_leaderboard, list):
+            contest_leaderboard = {
+                user["user_id"]: user for user in contest_leaderboard
+            }
 
+        # Calculate problems solved by each user
         for user_id in contest_leaderboard:
             contest_leaderboard[user_id]["problems_solved"] = sum(
-                [
-                    1
-                    for problem in contest_leaderboard[user_id]["problems"]
-                    if contest_leaderboard[user_id]["problems"][problem][
-                        "has_accepted_submission"
-                    ]
+                1
+                for problem in contest_leaderboard[user_id]["problems"]
+                if contest_leaderboard[user_id]["problems"][problem][
+                    "has_accepted_submission"
                 ]
             )
-            contest_leaderboard[user_id]["profile"] = mongodb_client.users.find_one({"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1})
+            # Retrieve user profile data
+            contest_leaderboard[user_id]["profile"] = mongodb_client.users.find_one(
+                {"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1}
+            )
 
+        # Sort the leaderboard based on score
         contest_leaderboard = dict(
             sorted(
                 contest_leaderboard.items(),
@@ -688,17 +700,15 @@ def contest(contest_id):
             )
         )
 
-
-        return render_template(
-            "individual-contest.html",
-            contest=contest,
-            has_contest_started=has_contest_started,
-            has_contest_ended=has_contest_ended,
-            has_user_participated=has_user_participated,
-            contest_problems=contest_problems,
-            contest_leaderboard=contest_leaderboard.items(),
-        )
-    return redirect(url_for("contests"))
+        # Return the appropriate response
+        return render_template("individual-contest.html", 
+                            contest=contest, 
+                            contest_leaderboard=contest_leaderboard, 
+                            has_contest_started=has_contest_started, 
+                            has_contest_ended=has_contest_ended, 
+                            has_user_participated=has_user_participated, 
+                            contest_problems=contest_problems)
+    return abort(404)
 
 
 @app.route("/create-announcement", methods=["GET"])

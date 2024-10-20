@@ -152,6 +152,8 @@ main {
   gap: 20px;
   width: 100%;
   padding: 10px 20px;
+  height: min-content;
+  margin-bottom: 20px;
 }
 
 .home_primary {
@@ -319,6 +321,7 @@ main {
 .previous_announcements_body .announcement .announcement_body ul, .previous_announcements_body .announcement .announcement_body ol {
   padding-left: 20px;
   margin-top: 5px;
+  margin-bottom: 5px;
 }
 
 .announcement-page {
@@ -677,7 +680,6 @@ select:focus {
   padding: 10px 20px;
   border-radius: 5px;
   border: 1px solid #555;
-  margin-bottom: 20px;
 }
 
 .contest-metadata h1 {
@@ -690,6 +692,38 @@ select:focus {
   font-size: 1rem;
   color: #000;
 }
+
+.contest-description h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 10px;
+}
+
+.contest-description p {
+  font-size: 1rem;
+  color: #000;
+  margin-bottom: 10px;
+}
+
+.contest-description ul, .contest-description ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.contest-description ul li, .contest-description ol li {
+  font-size: 1rem;
+  color: #000;
+  gap: 10px;
+}
+
+.contest-description a {
+  text-decoration: none;
+}
+
 
 .contest-ended {
   font-size: 1rem;
@@ -714,6 +748,7 @@ select:focus {
   border-radius: 5px;
   cursor: pointer;
   border: none;
+  font-size: 1rem;
 }
 
 .contest-register button:focus {
@@ -811,6 +846,7 @@ blockquote {
   flex-direction: column;
   gap: 5px;
   margin-top: 5px;
+  margin-bottom: 10px;
 }
 
 .home_announcement_body ul li, .home_announcement_body ol li {
@@ -867,6 +903,10 @@ blockquote {
   }
 
   .home_sidebar {
+    display: none;
+  }
+
+  .contest-leaderboard {
     display: none;
   }
 
