@@ -1068,8 +1068,6 @@ def create_submission():
                     },
                 )
 
-                print(judge0_response.json())
-
                 # Check if the submission was successful
                 if judge0_response.status_code == 201:
                     submission_id = str(uuid.uuid4())
@@ -1193,7 +1191,6 @@ def get_submission(submission_id):
                 headers={"Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(","))},
             )
 
-            print(judge0_response.json())
 
             if judge0_response.status_code == 200:
 
