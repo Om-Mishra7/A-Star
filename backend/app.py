@@ -1465,6 +1465,3 @@ def bad_request(e):
             "identifier": str(uuid.uuid4()),
         }
     ), 400
-
-if __name__ == "__main__":
-    app.run(debug=True, port=8080)
