@@ -1001,9 +1001,10 @@ def create_problem_api():
             and problem_level
             and problem_tags
         ):
+            problem_id = str(uuid.uuid4())
             mongodb_client.problems.insert_one(
                 {
-                    "problem_id": str(uuid.uuid4()),
+                    "problem_id": problem_id,
                     "problem_title": problem_title,
                     "problem_description": problem_description,
                     "problem_stdin": problem_stdin.strip(),
@@ -1403,8 +1404,6 @@ def create_contest_api():
             400,
         )
 
-
-# api/v1/contest/register/{{ contest.contest_id }}
 
 
 @app.route("/api/v1/contest/register/<contest_id>", methods=["POST"])
