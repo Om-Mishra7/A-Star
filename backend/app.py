@@ -45,7 +45,7 @@ app = Flask(__name__)
 
 # App Configuration
 app.config["SESSION_TYPE"] = "redis"
-app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_EXPIRES"] = 3600 * 24 * 30  # 30 days
 app.config["SESSION_USE_SIGNER"] = True
 app.config["SESSION_KEY_PREFIX"] = "session:"
@@ -722,17 +722,17 @@ def create_contest():
     ):
         easy_problems = list(
             mongodb_client.problems.find(
-                {"problem_level": "easy", "is_part_of_competition": False}
+                {"is_part_of_competition": False}, {"_id": 1, "problem_title": 1, "problem_id": 1, "problem_level": 1}
             )
         )
         medium_problems = list(
             mongodb_client.problems.find(
-                {"problem_level": "medium", "is_part_of_competition": False}
+                {"is_part_of_competition": False }, {"_id": 1, "problem_title": 1, "problem_id": 1, "problem_level": 1}
             )
         )
         hard_problems = list(
             mongodb_client.problems.find(
-                {"problem_level": "hard", "is_part_of_competition": False}
+                {"is_part_of_competition": False}, {"_id": 1, "problem_title": 1, "problem_id": 1, "problem_level": 1}
             )
         )
         previous_contests = list(mongodb_client.contests.find({}, {"_id": 0}))
@@ -1465,3 +1465,6 @@ def bad_request(e):
             "identifier": str(uuid.uuid4()),
         }
     ), 400
+
+if __name__ == "__main__":
+    app.run(debug=True, port=8080)

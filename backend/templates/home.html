@@ -18,6 +18,15 @@
   <main class="main-content">
     <div class="home">
       <div class="home_primary">
+        {% for announcement in announcements %}
+        <div class="home_announcement">
+          <h3>{{ announcement.announcement_title }}</h3>
+          <p>{{ format_date(announcement.created_at) }}</p>
+          <div class="home_announcement_body">
+            {{ announcement.announcement_body | safe }}
+            </div>
+        </div>
+        {% endfor %}
       </div>
     {% include 'private/sidebar.html' %}
     </div>
