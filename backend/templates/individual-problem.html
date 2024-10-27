@@ -68,14 +68,16 @@
                 {% for submission in top_submissions %}
                 <tr onclick="window.location.href='/profile/{{ submission.user_id }}'" style="cursor: pointer;">
                   <td>{{ loop.index }}</td>
-                  <td id="username-field"><img src={{ submission.user_details.user_profile.avatar_url }} style="width: 20px; height: 20px; border-radius: 5px; margin-right: 5px;">{{ submission.user_details.user_profile.display_name }}</td>
+                  <td id="username-field"><img src={{ submission.user_details.user_profile.avatar_url }}
+                      style="width: 20px; height: 20px; border-radius: 5px; margin-right: 5px;">{{
+                    submission.user_details.user_profile.display_name }}</td>
                   <td>{{ submission.language | capitalize }}</td>
                   <td>{{ submission.submission_status.time }}s</td>
                   <td>{{ submission.submission_status.memory }}KB</td>
                 </tr>
                 {% endfor %}
+          </div>
         </div>
-      </div>
       </div>
     </div>
   </main>
@@ -106,6 +108,7 @@
     checkMobile();
     window.addEventListener('resize', checkMobile);
   </script>
+  {% include 'private/footer.html' %}
 
 </body>
 

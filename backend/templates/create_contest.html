@@ -38,7 +38,8 @@
             <select name="contest_easy_problem" id="contest_easy_problem" class="form-control" required>
               <option value="" selected disabled>Select a problem</option>
               {% for problem in easy_problems %}
-              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level | capitalize }}</option>
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level |
+                capitalize }}</option>
               {% endfor %}
             </select>
           </div>
@@ -47,7 +48,8 @@
             <select name="contest_medium_problem" id="contest_medium_problem" class="form-control" required>
               <option value="" selected disabled>Select a problem</option>
               {% for problem in medium_problems %}
-              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level | capitalize }}</option>
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level |
+                capitalize }}</option>
               {% endfor %}
             </select>
           </div>
@@ -56,7 +58,8 @@
             <select name="contest_hard_problem" id="contest_hard_problem" class="form-control" required>
               <option value="" selected disabled>Select a problem</option>
               {% for problem in hard_problems %}
-              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level | capitalize }}</option>
+              <option value="{{ problem.problem_id }}">{{ problem.problem_title }} - {{ problem.problem_level |
+                capitalize }}</option>
               {% endfor %}
             </select>
           </div>
@@ -73,7 +76,8 @@
           <div class="previous_announcements_body">
             {% for contest in previous_contests %}
             <div class="announcement contest">
-              <a class="announcement_title content_title" href="/contests/{{ contest.contest_id }}">{{ contest.contest_title }} - {{ format_date(contest.contest_start_time, "long") }}</a>
+              <a class="announcement_title content_title" href="/contests/{{ contest.contest_id }}">{{
+                contest.contest_title }} - {{ format_date(contest.contest_start_time, "long") }}</a>
             </div>
             {% else %}
             <p>No previous contests</p>
@@ -86,6 +90,7 @@
     </div>
   </main>
 
+  {% include 'private/footer.html' %}
 
 </body>
 

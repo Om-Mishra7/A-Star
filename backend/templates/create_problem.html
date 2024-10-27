@@ -7,7 +7,7 @@
   <title>Create Problem | A*</title>
   <script src="/static/javascript/main.js" defer></script>
   <link rel="stylesheet" href="/static/css/main.css">
-    <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
 
 </head>
 
@@ -37,17 +37,18 @@
             </select>
             <label for="problem_tags">Problem Tags</label>
             <input type="text" name="problem_tags" id="problem_tags" class="form-control" required>
-            </div>
-            <div class="form-group form-group--submit">
-              <button type="submit" class="btn btn--primary">Create Problem</button>
-            </div>
-          </form>
           </div>
+          <div class="form-group form-group--submit">
+            <button type="submit" class="btn btn--primary">Create Problem</button>
+          </div>
+        </form>
+      </div>
       {% include 'private/sidebar.html' %}
     </div>
 
   </main>
 
+  {% include 'private/footer.html' %}
 
 </body>
 
