@@ -122,6 +122,9 @@ require(["vs/editor/editor.main"], function () {
         if (response.status === 400) {
           throw new Error('The code editor is empty, please write some code before submitting.');
         }
+        else if (response.status === 429) {
+          throw new Error('Submission rate limit exceeded. Please wait 30 seconds before submitting again.');
+        }
       }
       return response.json();
     })

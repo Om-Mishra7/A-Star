@@ -6,3 +6,4 @@ Flask
 Flask-Session
 flask-cors
 flask-ckeditor[all]
+Flask-Limiter
