@@ -39,9 +39,6 @@ window.addEventListener('focus', () => {
       focusOut: focusLostTime.toISOString()
     });
 
-    console.log('Focus regained:', regainedFocusTime.toISOString());
-    console.log('Focus lost at:', focusLostTime.toISOString());
-
     // Reset lost focus time
     focusLostTime = null;
   }
@@ -139,7 +136,6 @@ require(["vs/editor/editor.main"], function () {
     })
     .catch(error => {
       document.getElementById('submit').disabled = false;
-      console.error('Error:', error);
       document.getElementById('output').innerText = error.message;
     });
   });
@@ -201,7 +197,6 @@ require(["vs/editor/editor.main"], function () {
         }
       })
       .catch(error => {
-        console.error('Error:', error);
         document.getElementById('submit').disabled = false;
         document.getElementById('output').innerText = 'Error fetching submission status.';
         clearInterval(pollInterval);  // Stop polling on error
