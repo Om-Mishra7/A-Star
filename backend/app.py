@@ -145,6 +145,9 @@ def calculate_global_leaderboard():
             contest_leaderboard = contest["contest_statistics"]["contest_leaderboard"]
             
             # Iterate through each user in the contest leaderboard
+
+            if isinstance(contest_leaderboard, list):
+                contest_leaderboard = {user["user_id"]: user for user in contest_leaderboard}
             for user_id, user_data in contest_leaderboard.items():
                 global_leaderboard[user_id]["score"] += user_data["score"]
                 global_leaderboard[user_id]["problems_solved"] += sum(
