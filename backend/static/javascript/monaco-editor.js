@@ -120,9 +120,13 @@ require(["vs/editor/editor.main"], function () {
     .then(response => {
       if (!response.ok) {
         if (response.status === 400) {
+          document.getElementById('submit').disabled = false;
+          document.getElementById('output').innerText = 'The code editor is empty, please write some code before submitting.';
           throw new Error('The code editor is empty, please write some code before submitting.');
         }
         else if (response.status === 429) {
+          document.getElementById('submit').disabled = false;
+          document.getElementById('output').innerText = 'Submission rate limit exceeded. Please wait 30 seconds before submitting again.';
           throw new Error('Submission rate limit exceeded. Please wait 30 seconds before submitting again.');
         }
       }
