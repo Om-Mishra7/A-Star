@@ -396,6 +396,30 @@ def add_competition_submission(submission_id):
 
     return False
 
+def calculate_error_rate():
+    total_api_calls_today = mongodb_client.platform_logs.count_documents(
+        {
+            "created_at": {
+                "$gte": datetime.now().replace(hour=0, minute=0, second=0)
+            }
+        }
+    )
+    total_error_calls_today = mongodb_client.platform_logs.count_documents(
+        {
+            "created_at": {
+                "$gte": datetime.now().replace(hour=0, minute=0, second=0)
+            },
+            "log_type": "error",
+        }
+
+    )
+
+    if total_api_calls_today == 0:
+        return "0%"
+    
+    return str(round((total_error_calls_today / total_api_calls_today) * 100, 2)) + "%"
+
+
 
 # Frontend endpoints
 @app.route("/", methods=["GET"])
@@ -428,6 +452,17 @@ def platform_information():
                     "submissions": list(
                         mongodb_client.submissions.find({}, {"_id": 0, "language": 1, "problem_id" : 1, "updated_at": 1, "user_id": 1}, sort=[("updated_at", -1)])
                     ),
+                },
+                "external_api_statistics": {
+                    "total_api_calls": mongodb_client.submissions.count_documents({}),
+                    "total_api_calls_today": mongodb_client.submissions.count_documents(
+                        {
+                            "created_at": {
+                                "$gte": datetime.now().replace(hour=0, minute=0, second=0)
+                            }
+                        }
+                    ),
+                    "error_rate_today": calculate_error_rate(),
                 },
                 "platform_devlopers": [
                     {
@@ -1123,6 +1158,15 @@ def create_submission():
 
                 # Check if the submission was successful
                 if judge0_response.status_code == 201:
+                    mongodb_client.system_logs.insert_one(
+                        {
+                            "log_id": str(uuid.uuid4()),
+                            "log_type": "info",
+                            "log_message": "Submitted to execution server",
+                            "log_details": judge0_response.json(),
+                            "created_at": datetime.now(),
+                        }
+                    )
                     submission_id = str(uuid.uuid4())
                     
                     # Check if there's similar code in previous submissions
@@ -1183,11 +1227,20 @@ def create_submission():
                     )
 
                 else:
+                    mongodb_client.system_logs.insert_one(
+                        {
+                            "log_id": str(uuid.uuid4()),
+                            "log_type": "error",
+                            "log_message": "Failed to submit to execution server",
+                            "log_details": judge0_response.json(),
+                            "created_at": datetime.now(),
+                        }
+                    )
                     return (
                         jsonify(
                             {
                                 "response_code": 500,
-                                "message": "Failed to submit to Judge0",
+                                "message": "Failed to submit to execution server",
                                 "details": judge0_response.json(),
                             }
                         ),
