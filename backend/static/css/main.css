@@ -772,7 +772,7 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 30%;
+  width: 60%;
   padding: 10px 20px;
   border-radius: 5px;
   border: 1px solid #555;

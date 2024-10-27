@@ -257,37 +257,48 @@ def add_competition_submission(submission_id):
     contest_id = problem["competition_id"]
     contest = mongodb_client.contests.find_one({"contest_id": contest_id})
     user_id = submission["user_id"]
-    if is_user_allowed_to_submit_as_competition_submission(
-        submission["problem_id"], user_id
-    ):
-        # Update contest leaderboard which is an object
-        leaderboard = contest["contest_statistics"]["contest_leaderboard"]
+
+    if is_user_allowed_to_submit_as_competition_submission(submission["problem_id"], user_id):
+        # Ensure that contest_leaderboard is an object (not an array)
+        leaderboard = contest["contest_statistics"].get("contest_leaderboard", {})
+        
+        if isinstance(leaderboard, list):
+            # If it's an array, replace it with an empty document
+            mongodb_client.contests.update_one(
+                {"contest_id": contest_id},
+                {"$set": {"contest_statistics.contest_leaderboard": {}}}
+            )
+            leaderboard = {}
+
+        # Check if the user is already in the leaderboard
         if user_id not in leaderboard:
-            # Leaderboard is an object, so we need to update it
+            # Initialize the user's entry in the leaderboard
+            new_entry = {
+                "score": 0,
+                "problems": {
+                    contest["contest_problems"]["easy_problem"]: {
+                        "submissions_id": None,
+                        "has_accepted_submission": False,
+                        "number_of_incorrect_submissions": 0,
+                    },
+                    contest["contest_problems"]["medium_problem"]: {
+                        "submissions_id": None,
+                        "has_accepted_submission": False,
+                        "number_of_incorrect_submissions": 0,
+                    },
+                    contest["contest_problems"]["hard_problem"]: {
+                        "submissions_id": None,
+                        "has_accepted_submission": False,
+                        "number_of_incorrect_submissions": 0,
+                    },
+                },
+            }
+            # Add new entry to the leaderboard document
             mongodb_client.contests.update_one(
                 {"contest_id": contest_id},
                 {
                     "$set": {
-                        f"contest_statistics.contest_leaderboard.{user_id}": {
-                            "score": 0,
-                            "problems": {
-                                contest["contest_problems"]["easy_problem"]: {
-                                    "submissions_id": None,
-                                    "has_accepted_submission": False,
-                                    "number_of_incorrect_submissions": 0,
-                                },
-                                contest["contest_problems"]["medium_problem"]: {
-                                    "submissions_id": None,
-                                    "has_accepted_submission": False,
-                                    "number_of_incorrect_submissions": 0,
-                                },
-                                contest["contest_problems"]["hard_problem"]: {
-                                    "submissions_id": None,
-                                    "has_accepted_submission": False,
-                                    "number_of_incorrect_submissions": 0,
-                                },
-                            },
-                        }
+                        f"contest_statistics.contest_leaderboard.{user_id}": new_entry
                     }
                 },
             )
@@ -297,12 +308,11 @@ def add_competition_submission(submission_id):
             leaderboard = mongodb_client.contests.find_one({"contest_id": contest_id})[
                 "contest_statistics"
             ]["contest_leaderboard"]
-            if (
-                leaderboard[user_id]["problems"][problem["problem_id"]][
-                    "has_accepted_submission"
-                ]
-                == False
-            ):
+
+            if not leaderboard[user_id]["problems"][problem["problem_id"]][
+                "has_accepted_submission"
+            ]:
+                # Update the accepted submission details
                 mongodb_client.contests.update_one(
                     {"contest_id": contest_id},
                     {
@@ -320,17 +330,15 @@ def add_competition_submission(submission_id):
                     },
                 )
             else:
-                # If user has already submitted an accepted submission, update the leaderboard only if the new submission has a better score
-                if (
-                    mongodb_client.submissions.find_one(
-                        {
-                            "submission_id": leaderboard[user_id]["problems"][
-                                problem["problem_id"]
-                            ]["submissions_id"]
-                        }
-                    )["submission_status"]["time"]
-                    > submission["submission_status"]["time"]
-                ):
+                # If user has already submitted an accepted solution, update only if the new one has a better score (faster time)
+                previous_submission = mongodb_client.submissions.find_one(
+                    {
+                        "submission_id": leaderboard[user_id]["problems"][
+                            problem["problem_id"]
+                        ]["submissions_id"]
+                    }
+                )
+                if previous_submission["submission_status"]["time"] > submission["submission_status"]["time"]:
                     mongodb_client.contests.update_one(
                         {"contest_id": contest_id},
                         {
@@ -348,8 +356,8 @@ def add_competition_submission(submission_id):
                         },
                     )
 
+            # Recalculate the user's score and update the leaderboard
             user_score = calculate_score(user_id, contest_id)
-
             mongodb_client.contests.update_one(
                 {"contest_id": contest_id},
                 {
@@ -362,16 +370,10 @@ def add_competition_submission(submission_id):
             return True
 
         else:
-            leaderboard = mongodb_client.contests.find_one({"contest_id": contest_id})[
-                "contest_statistics"
-            ]["contest_leaderboard"]
-            # If submission is rejected, update the leaderboard
-            if (
-                leaderboard[user_id]["problems"][problem["problem_id"]][
-                    "has_accepted_submission"
-                ]
-                == False
-            ):
+            # If submission is rejected, update the number of incorrect submissions
+            if not leaderboard[user_id]["problems"][problem["problem_id"]][
+                "has_accepted_submission"
+            ]:
                 mongodb_client.contests.update_one(
                     {"contest_id": contest_id},
                     {
@@ -379,9 +381,9 @@ def add_competition_submission(submission_id):
                             f"contest_statistics.contest_leaderboard.{user_id}.problems.{problem['problem_id']}": {
                                 "submissions_id": None,
                                 "has_accepted_submission": False,
-                                "number_of_incorrect_submissions": leaderboard[user_id][
-                                    "problems"
-                                ][problem["problem_id"]][
+                                "number_of_incorrect_submissions": leaderboard[
+                                    user_id
+                                ]["problems"][problem["problem_id"]][
                                     "number_of_incorrect_submissions"
                                 ]
                                 + 1,
