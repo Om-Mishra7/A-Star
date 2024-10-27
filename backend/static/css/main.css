@@ -9,6 +9,9 @@
 
 body {
   background-color: #FFF;
+  height: 100%;
+  width: 100%;
+  font-size: 1rem;
 }
 
 navbar {
@@ -53,7 +56,8 @@ navbar {
 main {
   display: flex;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
+  height: 100%;
 }
 
 .global-message {

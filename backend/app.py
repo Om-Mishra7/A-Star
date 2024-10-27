@@ -404,6 +404,8 @@ def homepage():
 
 @app.route("/platform-information", methods=["GET"])
 def platform_information():
+    if session.get("is_authenticated") is None or session["user"]["user_account"]["role"] != "admin":
+        return redirect(url_for("homepage"))
     return jsonify(
         {
             "response_code": 200,
@@ -411,10 +413,21 @@ def platform_information():
                 "platform_name": "A*",
                 "platform_version": "1.0.0",
                 "platform_statistic": {
-                    "total_users": mongodb_client.users.count_documents({}),
                     "total_problems": mongodb_client.problems.count_documents({}),
                     "total_contests": mongodb_client.contests.count_documents({}),
                     "total_submissions": mongodb_client.submissions.count_documents({}),
+                },
+                "user_statistics": {
+                    "total_users": mongodb_client.users.count_documents({}),
+                    "users": list(
+                        mongodb_client.users.find({}, {"_id": 0, "user_account.created_at": 1, "user_account.primary_email": 1, "user_account.user_id": 1, "user_profile.display_name": 1}, sort=[("user_account.created_at", -1)])
+                    ),
+                },
+                "submission_statistics": {
+                    "total_submissions": mongodb_client.submissions.count_documents({}),
+                    "submissions": list(
+                        mongodb_client.submissions.find({}, {"_id": 0, "language": 1, "problem_id" : 1, "updated_at": 1, "user_id": 1}, sort=[("updated_at", -1)])
+                    ),
                 },
                 "platform_devlopers": [
                     {
