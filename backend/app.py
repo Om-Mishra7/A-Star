@@ -1110,27 +1110,26 @@ def create_problem_api():
 def create_submission():
     is_similar = False
     if session.get("is_authenticated"):
-        # last_submission = mongodb_client.submissions.find_one(
-        #     {
-        #         "user_id": session["user"]["user_account"]["user_id"],
-        #         "created_at": {"$gte": datetime.now() - timedelta(seconds=30)},
-        #     }
-        # )
-        # if last_submission:
-        #     return (
-        #         jsonify(
-        #             {
-        #                 "response_code": 429,
-        #                 "message": "Please wait 30 seconds before submitting again",
-        #                 "identifier": str(uuid.uuid4()),
-        #             }
-        #         ),
-        #         429,
-        #     )
+        last_submission = mongodb_client.submissions.find_one(
+            {
+                "user_id": session["user"]["user_account"]["user_id"],
+                "created_at": {"$gte": datetime.now() - timedelta(seconds=10)},
+            }
+        )
+        if last_submission:
+            return (
+                jsonify(
+                    {
+                        "response_code": 429,
+                        "message": "Please wait 10 seconds before submitting again",
+                        "identifier": str(uuid.uuid4()),
+                    }
+                ),
+                429,
+            )
         problem_id = request.json.get("problem_id")
         code = request.json.get("code")
         if problem_id and code:
-            print(problem_id)
             problem = mongodb_client.problems.find_one({"problem_id": problem_id})
             if problem:
                 # Prepare data to send to Judge0 in base64 encoded format
@@ -1156,8 +1155,6 @@ def create_submission():
                         "Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(",")),
                     },
                 )
-
-                print(judge0_response.json())
 
                 # Check if the submission was successful
                 if judge0_response.status_code == 201:
@@ -1299,8 +1296,6 @@ def get_submission(submission_id):
                 f"https://judge0-ce.p.sulu.sh/submissions/{submission['judge0_submission_id']}?fields=stdout,stderr,status,time,memory",
                 headers={"Authorization": "Bearer " + random.choice(os.getenv("API_KEY").split(","))},
             )
-
-            print(judge0_response.json())
 
 
             if judge0_response.status_code == 200:
