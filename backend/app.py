@@ -73,7 +73,7 @@ mongodb_client = MongoClient(os.getenv("MONGODB_URI"))["communitycompetitionprod
 @app.after_request
 def headers(response):
     if request.path.startswith("/static/"):
-        response.cache_control.max_age = 31536000
+        response.cache_control.max_age = 3600
     return response
 
 
