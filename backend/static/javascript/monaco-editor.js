@@ -123,8 +123,8 @@ require(["vs/editor/editor.main"], function () {
         }
         else if (response.status === 429) {
           document.getElementById('submit').disabled = false;
-          document.getElementById('output').innerText = 'Submission rate limit exceeded. Please wait 30 seconds before submitting again.';
-          throw new Error('Submission rate limit exceeded. Please wait 30 seconds before submitting again.');
+          document.getElementById('output').innerText = 'Submission rate limit exceeded. Please wait 10 seconds before submitting again.';
+          throw new Error('Submission rate limit exceeded. Please wait 10 seconds before submitting again.');
         }
       }
       return response.json();
