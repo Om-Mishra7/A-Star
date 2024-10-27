@@ -76,6 +76,7 @@
                   <td>{{ submission.submission_status.memory }}KB</td>
                 </tr>
                 {% endfor %}
+              </tbody>
           </div>
         </div>
       </div>
@@ -108,8 +109,6 @@
     checkMobile();
     window.addEventListener('resize', checkMobile);
   </script>
-  {% include 'private/footer.html' %}
-
 </body>
 
 </html>
