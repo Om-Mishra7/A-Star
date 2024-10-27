@@ -1148,7 +1148,7 @@ def create_submission():
 
                 # Send submission to the Judge0 API
                 judge0_response = requests.post(
-                    "https://judge0-ce.p.sulu.sh/submissions?base64_encoded=true&cpu_time_limit=10&wall_time_limit=15&enable_per_process_and_thread_time_limit=true&enable_per_process_and_thread_memory_limit=true&enable_network=false",
+                    "https://judge0-ce.p.sulu.sh/submissions?base64_encoded=true",
                     json=judge0_payload,
                     headers={
                         "Content-Type": "application/json",
