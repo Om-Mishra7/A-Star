@@ -1110,23 +1110,23 @@ def create_problem_api():
 def create_submission():
     is_similar = False
     if session.get("is_authenticated"):
-        last_submission = mongodb_client.submissions.find_one(
-            {
-                "user_id": session["user"]["user_account"]["user_id"],
-                "created_at": {"$gte": datetime.now() - timedelta(seconds=30)},
-            }
-        )
-        if last_submission:
-            return (
-                jsonify(
-                    {
-                        "response_code": 429,
-                        "message": "Please wait 30 seconds before submitting again",
-                        "identifier": str(uuid.uuid4()),
-                    }
-                ),
-                429,
-            )
+        # last_submission = mongodb_client.submissions.find_one(
+        #     {
+        #         "user_id": session["user"]["user_account"]["user_id"],
+        #         "created_at": {"$gte": datetime.now() - timedelta(seconds=30)},
+        #     }
+        # )
+        # if last_submission:
+        #     return (
+        #         jsonify(
+        #             {
+        #                 "response_code": 429,
+        #                 "message": "Please wait 30 seconds before submitting again",
+        #                 "identifier": str(uuid.uuid4()),
+        #             }
+        #         ),
+        #         429,
+        #     )
         problem_id = request.json.get("problem_id")
         code = request.json.get("code")
         if problem_id and code:
