@@ -26,6 +26,9 @@
               <th>Contest Title</th>
               <th>Contest Date</th>
               <th>Numer of Participants</th>
+              {% if session["user"]["user_account"]["role"] == "admin" %}
+              <th>Actions</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -40,6 +43,11 @@
                 </svg></td>
               <td>{{ format_date(contest.contest_start_time) }}</td>
               <td>{{ contest.contest_statistics.total_participants }}</td>
+              {% if session["user"]["user_account"]["role"] == "admin" %}
+              <td>
+                <a href="/contest-results/{{ contest.contest_id }}">Results</a>
+              </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
