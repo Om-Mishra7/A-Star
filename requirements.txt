@@ -7,3 +7,5 @@ Flask-Session
 flask-cors
 flask-ckeditor[all]
 Flask-Limiter
+google-generativeai
+Markdown

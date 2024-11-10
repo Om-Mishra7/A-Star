@@ -6,7 +6,9 @@ import base64
 import random
 from collections import defaultdict
 import requests
+import json
 import difflib
+import re
 import redis
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -16,27 +18,14 @@ from flask_cors import CORS
 from flask_ckeditor import CKEditor
 from flask_ckeditor.utils import cleanify
 from zoneinfo import ZoneInfo
+import google.generativeai as genai
+import markdown
+
 
 # Get the current time in the "Asia/Kolkata" timezone
 kolkata_tz = ZoneInfo("Asia/Kolkata")
 
 
-def compare_output(submission_output, problem_id):
-    problem = mongodb_client.problems.find_one({"problem_id": problem_id})
-    expected_output = list(map(str.strip, problem.get("problem_stdout").split("\n")))
-    number_of_passed_test_cases = 0
-    if submission_output is None:
-        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
-    submission_output = list(map(str.strip, submission_output.split("\n")))
-
-    try:
-        for i in range(len(expected_output)):
-            if expected_output[i] == submission_output[i]:
-                number_of_passed_test_cases += 1
-    except IndexError:
-        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
-
-    return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
 
 
 load_dotenv()  # take environment variables from .env.
@@ -67,6 +56,9 @@ ckeditor = CKEditor(app)
 
 # Connect to MongoDB
 mongodb_client = MongoClient(os.getenv("MONGODB_URI"))["communitycompetitionprod"]
+
+# Gemini API Configuration
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 # Middleware
 
@@ -419,9 +411,191 @@ def calculate_error_rate():
     
     return str(round((total_error_calls_today / total_api_calls_today) * 100, 2)) + "%"
 
+def compare_output(submission_output, problem_id):
+    problem = mongodb_client.problems.find_one({"problem_id": problem_id})
+    expected_output = list(map(str.strip, problem.get("problem_stdout").split("\n")))
+    number_of_passed_test_cases = 0
+    if submission_output is None:
+        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
+    submission_output = list(map(str.strip, submission_output.split("\n")))
+
+    try:
+        for i in range(len(expected_output)):
+            if expected_output[i] == submission_output[i]:
+                number_of_passed_test_cases += 1
+    except IndexError:
+        return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
+
+    return str(number_of_passed_test_cases) + "/" + str(len(expected_output))
+
+def generate_contest_report(contest, contest_submissions, contest_problems, contest_leaderboard):
+    # Set up the prompt for the generative model
+    prompt = f"""
+    Generate a long and detailed summary and improvement report of the contest with key points in JSON format 
+    (summary: str, improvement: str). The contest data is as follows: {contest}; contest submissions: {contest_submissions}; 
+    contest problems: {contest_problems}; and contest leaderboard: {contest_leaderboard}. Ensure the summary is at least 
+    500 words and the improvement is at least 300 words. Use the leaderboard to analyze user performance, submissions to 
+    check the entries, and problems to evaluate contest challenges. Structure the output in HTML format, with <h1> for 
+    headings, <p> tags with <strong> content, and replace line breaks with <br> tags.
+    """
+
+    # Make the API request to the Gemini model
+    response = requests.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={os.environ['GEMINI_API_KEY']}",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps({
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"response_mime_type": "application/json"}
+        })
+    )
+
+    # Check for a successful response
+    if response.status_code != 200:
+        raise Exception(f"Request failed with status code {response.status_code}")
+
+    # Get the generated content text
+    data = response.json()
+    try:
+        # Parse JSON response to get 'summary' and 'improvement'
+        content_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        content_json = json.loads(content_text)
+        summary_html = content_json["summary"]
+        improvement_html = content_json["improvement"]
+    except (json.JSONDecodeError, KeyError):
+        # If JSON parsing fails, use regex to extract 'summary' and 'improvement'
+        print("JSON parsing failed, attempting regex extraction")
+        summary_match = re.search(r'"summary":\s*"([^"]+)"', content_text)
+        improvement_match = re.search(r'"improvement":\s*"([^"]+)"', content_text)
+
+        if summary_match and improvement_match:
+            summary_html = summary_match.group(1)
+            improvement_html = improvement_match.group(1)
+        else:
+            raise ValueError("Failed to extract 'summary' and 'improvement' from content_text")
+
+    return summary_html, improvement_html
+
+def format_ai_text(text):
+    return text
+
+def generate_problem_using_ai(level):
+    example_problem_description = """<p><strong>Parentheses Balancing</strong></p>
+
+    <p>You are given a collection of strings. Each string consists only of the characters &#39;(&#39;, &#39;)&#39;, &#39;{&#39;, &#39;}&#39;, &#39;[&#39;, and &#39;]&#39;. Your task is to determine, for each string, whether the parentheses within it are balanced. A string is considered to have balanced parentheses if it meets the following two conditions:</p>
+
+    <p>1.&nbsp;<strong>Matching Pairs:</strong>&nbsp;Every opening parenthesis (such as &#39;(&#39;, &#39;{&#39;, or &#39;[&#39;) must have a corresponding closing parenthesis of the same type (&#39;)&#39;, &#39;}&#39;, or &#39;]&#39; respectively).</p>
+
+    <p>2.&nbsp;<strong>Correct Order:</strong>&nbsp;The parentheses must be closed in the correct order. For instance, &#39;({[]})&#39; is balanced, while &#39;([)]&#39; is not because the closing square bracket &#39;]&#39; appears before the closing parenthesis &#39;)&#39;.</p>
+
+    <p>&nbsp;</p>
+
+    <p><strong>Example:</strong></p>
+
+    <p>For example, the string &#39;()[]{}&#39; would be considered balanced, while the string &#39;([)]&#39; would not be considered balanced.</p>
+
+    <p>&nbsp;</p>
+
+    <p><strong>Input Format:</strong></p>
+
+    <p>The input consists of multiple lines separated by \n, starting with a single integer, N, representing the number of test cases. Each of the following N lines contains a string made up of only the characters (, ), {, }, [, and ]. Each string is a sequence of these characters with no spaces in between.<br />
+    &nbsp;</p>
+
+    <p><strong>Output Format:</strong></p>
+
+    <p>For each input string, output a single line containing either &#39;YES&#39; if the parentheses are balanced or &#39;NO&#39; if they are not.</p>
+
+    <p><br />
+    <strong>Input Example 1:</strong></p>
+
+    <div style="background:#eeeeee; border:1px solid #cccccc; padding:5px 10px"><code>3<br />
+    ()[]{}<br />
+    ([)]<br />
+    {{{(</code></div>
+
+    <p><strong>Output Example 1:</strong></p>
+
+    <div style="background:#eeeeee; border:1px solid #cccccc; padding:5px 10px"><code>YES<br />
+    NO<br />
+    NO</code></div>"""
+
+    prompt = f"""Generate a unique competitive programming problem of difficulty level {level}. The problem should follow this structure:
+
+    - **Title:** A concise, meaningful title.
+    - **Description:** Detailed problem description, including requirements and constraints in clear and structured HTML format like this: {example_problem_description}
+    - **Input Format:** A clear explanation of input, including any required delimiters.
+    - **Output Format:** Describe what each output line should contain for each input test case.
+    - **Example:** Include at least one example with input and output that highlights typical cases.
+    - **Test Cases:** Include at least 50(very important) diverse stdin and stdout cases, including edge cases and corner cases in the stdin, stdout format, example: stdin: {mongodb_client.problems.find_one({}, {"problem_stdin": 1})["problem_stdin"]}, stdout: {mongodb_client.problems.find_one({}, {"problem_stdout": 1})["problem_stdout"]}
+
+    Please respond with the following JSON structure:
+    ```json
+    {{
+    "problem_title": "string",
+    "problem_description": "string",
+    "problem_stdin": "string",
+    "problem_stdout": "string",
+    "problem_level": "{level}",
+    "problem_tags": ["tag1", "tag2", ...]
+    }}
+    ```
+    Ensure the problem is unique and follows the specified difficulty level. Use the provided example problem description as a reference for the structure and formatting of the problem description, also ensure that the input will be sending multiple test cases therefore tell user what each set of lines will contain and what the output should be for each set of lines."""
+
+    response = requests.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=" + os.environ["GEMINI_API_KEY"],
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(
+            {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt
+                            }
+                        ]
+                    }
+                ],
+                "generationConfig": {
+                    "response_mime_type": "application/json"
+                }
+            }
+        ),
+        )
+    
+    data = response.json()
+
+    # Navigate through the structure to access the problem parameters
+    try:
+        content_text = data["candidates"][0]["content"]["parts"][0]["text"]
+        try:
+            problem_data = json.loads(content_text)
+        except json.JSONDecodeError:
+            return None
+
+        # Extract specific problem parameters
+        problem_title = problem_data.get("problem_title", "")
+        problem_description = problem_data.get("problem_description", "")
+        problem_stdin = problem_data.get("problem_stdin", "")
+        problem_stdout = problem_data.get("problem_stdout", "")
+        problem_level = problem_data.get("problem_level", "")
+        problem_tags = problem_data.get("problem_tags", [])
+
+
+        return (
+            problem_title,
+            problem_description,
+            problem_stdin,
+            problem_stdout,
+            problem_level,
+            problem_tags,
+        )
+
+    except KeyError as e:
+        print("Key error:", e)
+        return None
 
 
 # Frontend endpoints
+
 @app.route("/", methods=["GET"])
 def homepage():
     return render_template("home.html")
@@ -793,6 +967,14 @@ def create_problem():
         return render_template("create_problem.html")
     return redirect(url_for("homepage"))
 
+@app.route("/create-problem-ai", methods=["GET"])
+def create_problem_ai():
+    if (
+        session.get("is_authenticated")
+        and session["user"]["user_account"]["role"] == "admin"
+    ):
+        return render_template("create_problem_ai.html")
+    return redirect(url_for("homepage"))
 
 @app.route("/create-contest", methods=["GET"])
 def create_contest():
@@ -825,6 +1007,142 @@ def create_contest():
         )
     return redirect(url_for("homepage"))
 
+@app.route("/contest-results/<contest_id>", methods=["GET"])
+def contest_results(contest_id):
+    # Get the contest details and details about all user submissions make a leaderboard and give all submissions to Gemini to genrate a report and also create a user by report showing the user's number of submisison percent correct copied code all keys pressed and time taken
+    if session.get("is_authenticated") is None:
+        return redirect(url_for("login"))
+    
+    if session["user"]["user_account"]["role"] != "admin":
+        return redirect(url_for("homepage"))
+    
+    contest = mongodb_client.contests.find_one({"contest_id": contest_id}, {"_id": 0, "contest_id": 1, "contest_title": 1, "contest_start_time": 1, "contest_end_time": 1, "contest_statistics": 1, "contest_problems": 1, "contest_summary": 1, "contest_improvement": 1})
+    if contest:
+        contest_leaderboard = mongodb_client.contests.find_one(
+            {"contest_id": contest_id}
+        )["contest_statistics"]["contest_leaderboard"]
+
+        # Ensure the contest has ended
+        if datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz) > datetime.now(tz=kolkata_tz):
+            return redirect(url_for("contest", contest_id=contest_id))
+
+        # Ensure contest_leaderboard is a dictionary (if it's a list)
+        if isinstance(contest_leaderboard, list):
+            contest_leaderboard = {
+                user["user_id"]: user for user in contest_leaderboard
+            }
+
+        # Calculate problems solved by each user
+        for user_id in contest_leaderboard:
+            contest_leaderboard[user_id]["problems_solved"] = sum(
+                1
+                for problem in contest_leaderboard[user_id]["problems"]
+                if contest_leaderboard[user_id]["problems"][problem][
+                    "has_accepted_submission"
+                ]
+            )
+            # Retrieve user profile data
+            contest_leaderboard[user_id]["profile"] = mongodb_client.users.find_one(
+                {"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1}
+            )
+
+        # Sort the leaderboard based on score
+        contest_leaderboard = dict(
+            sorted(
+                contest_leaderboard.items(),
+                key=lambda item: item[1]["score"],
+                reverse=True,
+            )
+        )
+
+        # Get all submissions for the contest by looping thorough all the problems of the contest then checking submissisons for the ptobelm id in the contest timeframe and at end cchecking if the user had participated in it 
+        contest_submissions = []
+        number_of_passed_submissions = 0
+        number_of_failed_submissions = 0
+
+
+        for problem_id in contest["contest_problems"].values():
+            submissions = list(
+                mongodb_client.submissions.find(
+                    {
+                        "problem_id": problem_id,
+                        "user_id": {"$in": contest["contest_statistics"]["contest_participants"]},
+                        "created_at": {
+                            "$gte": datetime.strptime(contest["contest_start_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz),
+                            "$lt": datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz),
+                        }
+                    },
+                    {"_id": 0, "problem_id": 1, "user_id": 1, "submission_status": 1, "language": 1, "created_at": 1},
+                )
+            )
+
+
+            for submission in submissions:
+                contest_submissions.append(submission)
+                if submission["submission_status"]["status_code"] == 3:
+                    number_of_passed_submissions += 1
+                else:
+                    number_of_failed_submissions += 1
+
+        # Get title of all contest problems and thier difficulty 
+
+        contest_problems = list(
+            mongodb_client.problems.find(
+                {
+                    "problem_id": {
+                        "$in": [
+                            contest["contest_problems"]["easy_problem"],
+                            contest["contest_problems"]["medium_problem"],
+                            contest["contest_problems"]["hard_problem"],
+                        ]
+                    }
+                },
+                {"_id": 0, "problem_title": 1, "problem_description": 1, "problem_level": 1},
+            )
+        )
+
+        # Check if the contest has a summary and improvement field if not make a request to Gemini to generate a report
+        if contest.get("contest_summary") is None or contest.get("contest_improvement") is None:
+            while True:
+                contest_summary, contest_improvement = generate_contest_report(contest, contest_submissions, contest_problems, contest_leaderboard)
+                if len(contest_summary) > 200 or len(contest_improvement) > 200:
+                    break
+            mongodb_client.contests.update_one(
+                {"contest_id": contest_id},
+                {
+                    "$set": {
+                        "contest_summary": contest_summary,
+                        "contest_improvement": contest_improvement
+                    }
+                }
+            )
+
+        contest =  mongodb_client.contests.find_one({"contest_id": contest_id}, {"_id": 0, "contest_id": 1, "contest_title": 1, "contest_start_time": 1, "contest_end_time": 1, "contest_statistics": 1, "contest_problems": 1, "contest_summary": 1, "contest_improvement": 1})
+
+        # For all users in the leaderboard get if any of the submissions are similar to the other submissions by checking all submissions of the user in the contest and checking if any of them have is_similar set to true
+        for user_id in contest_leaderboard:
+            contest_leaderboard[user_id]["similar_submissions"] = False
+            for problem_id in contest["contest_problems"].values():
+                submissions = list(
+                    mongodb_client.submissions.find(
+                        {
+                            "problem_id": problem_id,
+                            "user_id": user_id,
+                            "created_at": {
+                                "$gte": datetime.strptime(contest["contest_start_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz),
+                                "$lt": datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz),
+                            }
+                        },
+                        {"_id": 0, "is_similar": 1},
+                    )
+                )
+                for submission in submissions:
+                    if submission["is_similar"]:
+                        contest_leaderboard[user_id]["similar_submissions"] = True
+                        break
+
+
+        return render_template("contest-results.html", contest=contest, contest_leaderboard=contest_leaderboard, contest_submissions=contest_submissions, number_of_passed_submissions=number_of_passed_submissions, number_of_failed_submissions=number_of_failed_submissions, contest_problems=contest_problems, contest_summary=format_ai_text(contest["contest_summary"]), contest_improvement=format_ai_text(contest["contest_improvement"]))
 
 # Maintainance endpoints
 @app.route("/api/v1/health", methods=["GET"])
@@ -1063,6 +1381,9 @@ def create_problem_api():
         problem_level = request.form.get("problem_level")
         problem_tags = request.form.get("problem_tags")
 
+        if problem_description is None:
+            problem_description = request.form.get("problem_description")
+
         if (
             problem_title
             and problem_description
@@ -1177,7 +1498,7 @@ def create_submission():
                     
                     for submission in existing_submissions:
                         existing_code = submission["code"]
-                        if is_code_similar(code, existing_code):
+                        if is_code_similar(code, existing_code) and submission["user_id"] != session["user"]["user_account"]["user_id"]:
                             is_similar = True
                             break
                             
@@ -1549,6 +1870,39 @@ def register_contest(contest_id):
     )
 
 
+@app.route("/api/v1/ai/create-problem", methods=["GET"])
+def create_ai_problem():
+    if session.get("is_authenticated") and session["user"]["user_account"]["role"] == "admin":
+        problem_difficulty = request.args.get("difficulty")
+        response = generate_problem_using_ai(problem_difficulty)
+        problem_title, problem_description, problem_stdin, problem_stdout, problem_level, problem_tags = response
+
+        try:
+            return jsonify(
+                {
+                    "response_code": 200,
+                    "problem_title": problem_title.replace("\n", "<br>"),
+                    "problem_description": problem_description.replace("\n\n", "<br>").replace("\n", "<br>"),
+                    "problem_stdin": problem_stdin,
+                    "problem_stdout": problem_stdout,
+                    "problem_level": problem_level,
+                    "problem_tags": ",".join(tag.strip().replace('"', '').title() for tag in problem_tags),
+                    "identifier": str(uuid.uuid4()),
+                }
+                )
+        except Exception as e:
+            print(e)
+            return jsonify(
+                {
+                    "response_code": 500,
+                    "message": "Failed to generate problem",
+                    "identifier": str(uuid.uuid4()),
+                }
+            ), 500
+    return redirect(url_for("homepage"))
+
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify(
@@ -1588,7 +1942,3 @@ def bad_request(e):
             "identifier": str(uuid.uuid4()),
         }
     ), 400
-
-
-if __name__ == "__main__":
-    app.run(debug=True, port=8080)
