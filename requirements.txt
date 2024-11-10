@@ -9,3 +9,4 @@ flask-ckeditor[all]
 Flask-Limiter
 google-generativeai
 Markdown
+gunicorn
