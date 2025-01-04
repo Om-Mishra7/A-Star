@@ -18,7 +18,7 @@ navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem; 
+  padding: 1rem 2rem;
 }
 
 .navbar-header {
@@ -111,7 +111,7 @@ main {
   align-items: center;
 }
 
-.close-button svg{
+.close-button svg {
   fill: #004085;
   width: 20px;
   cursor: pointer;
@@ -247,13 +247,15 @@ main {
   color: #000;
 }
 
-.form-group input, .form-group textarea {
+.form-group input,
+.form-group textarea {
   padding: 10px;
   border-radius: 5px;
   border: 1px solid #555;
 }
 
-.form-group input:focus, .form-group textarea:focus {
+.form-group input:focus,
+.form-group textarea:focus {
   outline: none;
   border: 1px solid #000;
 }
@@ -337,7 +339,8 @@ main {
   color: #000;
 }
 
-.previous_announcements_body .announcement .announcement_body ul, .previous_announcements_body .announcement .announcement_body ol {
+.previous_announcements_body .announcement .announcement_body ul,
+.previous_announcements_body .announcement .announcement_body ol {
   padding-left: 20px;
   margin-top: 5px;
   margin-bottom: 5px;
@@ -369,7 +372,12 @@ main {
   margin-top: 20px;
 }
 
-.announcement-page .announcement_body h1, .announcement-page .announcement_body h2, .announcement-page .announcement_body h3, .announcement-page .announcement_body h4, .announcement-page .announcement_body h5, .announcement-page .announcement_body h6 {
+.announcement-page .announcement_body h1,
+.announcement-page .announcement_body h2,
+.announcement-page .announcement_body h3,
+.announcement-page .announcement_body h4,
+.announcement-page .announcement_body h5,
+.announcement-page .announcement_body h6 {
   margin-bottom: 10px;
   margin-top: 20px;
 }
@@ -379,7 +387,8 @@ main {
   color: #000;
 }
 
-.announcement-page .announcement_body ul, .announcement-page .announcement_body ol {
+.announcement-page .announcement_body ul,
+.announcement-page .announcement_body ol {
   padding-left: 20px;
   display: flex;
   flex-direction: column;
@@ -388,7 +397,8 @@ main {
 }
 
 
-.announcement-page .announcement_body ul li, .announcement-page .announcement_body ol li {
+.announcement-page .announcement_body ul li,
+.announcement-page .announcement_body ol li {
   font-size: 1rem;
   color: #000;
   gap: 10px;
@@ -427,18 +437,19 @@ th {
   background-color: #f2f2f2;
 }
 
-th, td {
+th,
+td {
   border: 1px solid #ddd;
   text-align: left;
   padding: 8px;
 }
 
 td.problem_title {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 10px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
 }
 
 td svg {
@@ -502,14 +513,16 @@ tr:nth-child(even) {
   margin-top: 20px;
 }
 
-.problem-description ul, .problem-description ol {
+.problem-description ul,
+.problem-description ol {
   padding-left: 20px;
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-.problem-description ul li, .problem-description ol li {
+.problem-description ul li,
+.problem-description ol li {
   font-size: 1rem;
   color: #000;
   gap: 10px;
@@ -624,7 +637,7 @@ select:focus {
   border: 1px solid #555;
   margin: 0px !important;
   font-family: 'Roboto-Mono', monospace !important;
-} 
+}
 
 .output-result {
   display: flex;
@@ -637,7 +650,7 @@ select:focus {
   margin-bottom: 20px;
 }
 
-.output-header{
+.output-header {
   font-size: 1rem;
   font-weight: 700;
   color: #000;
@@ -700,18 +713,19 @@ select:focus {
   background-color: #f2f2f2;
 }
 
-.top-submissions-table th, .top-submissions-table td {
+.top-submissions-table th,
+.top-submissions-table td {
   border: 1px solid #ddd;
   text-align: left;
   padding: 8px;
   font-size: .9rem;
 }
 
-#username-field{
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: center;
+#username-field {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .top-submissions-table tr:nth-child(even) {
@@ -753,7 +767,8 @@ select:focus {
   margin-bottom: 10px;
 }
 
-.contest-description ul, .contest-description ol {
+.contest-description ul,
+.contest-description ol {
   padding-left: 20px;
   display: flex;
   flex-direction: column;
@@ -761,7 +776,8 @@ select:focus {
   margin-bottom: 10px;
 }
 
-.contest-description ul li, .contest-description ol li {
+.contest-description ul li,
+.contest-description ol li {
   font-size: 1rem;
   color: #000;
   gap: 10px;
@@ -887,7 +903,8 @@ blockquote {
   margin-bottom: 10px;
 }
 
-.home_announcement_body ul, .home_announcement_body ol {
+.home_announcement_body ul,
+.home_announcement_body ol {
   padding-left: 20px;
   display: flex;
   flex-direction: column;
@@ -896,7 +913,8 @@ blockquote {
   margin-bottom: 10px;
 }
 
-.home_announcement_body ul li, .home_announcement_body ol li {
+.home_announcement_body ul li,
+.home_announcement_body ol li {
   font-size: 1rem;
   color: #000;
   gap: 10px;
@@ -904,7 +922,12 @@ blockquote {
 }
 
 
-.home_announcement_body h1, .home_announcement_body h2, .home_announcement_body h3, .home_announcement_body h4, .home_announcement_body h5, .home_announcement_body h6 {
+.home_announcement_body h1,
+.home_announcement_body h2,
+.home_announcement_body h3,
+.home_announcement_body h4,
+.home_announcement_body h5,
+.home_announcement_body h6 {
   margin-bottom: 10px;
   margin-top: 20px;
 }
@@ -994,11 +1017,13 @@ blockquote {
   margin-bottom: 10px;
 }
 
-.contest-summary h1, .contest-improvement h1 {
+.contest-summary h1,
+.contest-improvement h1 {
   display: none;
-} 
+}
 
-.contest-summary, .contest-improvement {
+.contest-summary,
+.contest-improvement {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1036,6 +1061,6 @@ blockquote {
     display: none;
   }
 
-  
+
 
 }
