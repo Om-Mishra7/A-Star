@@ -1285,6 +1285,21 @@ def external_handler():
         400,
     )
 
+#Special guest endpoint - ChaiWithCode
+@app.route("/chai-aur-code", methods=["GET"])
+def chai_with_code():
+    if request.args.get("temp_login_key") == "udE6mKEQtkNK6MT7DkfXfGm3rjTz9zvC":
+        # Create a user session with email as 2201350010@krmu.edu.in
+        
+        session["is_authenticated"] = True
+        session["user"] = mongodb_client.users.find_one(
+            {"user_account.primary_email": "2201350010@krmu.edu.in"}, {"_id": 0}
+        )
+
+        session["user"]["user_profile"]["display_name"] = "ChaiAurCode"
+        session["user"]["user_profile"]["avatar_url"] = "https://yt3.googleusercontent.com/1FEdfq3XpKE9UrkT4eOc5wLF2Bz-42sskTi0RkK4nPh4WqCbVmmrDZ5SVEV3WyvPdkfR8sw2=s160-c-k-c0x00ffffff-no-rj"
+
+        return redirect(url_for("homepage"))
 
 # User endpoints
 @app.route("/api/v1/user", methods=["POST", "GET"])
