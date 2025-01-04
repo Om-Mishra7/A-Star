@@ -1301,6 +1301,8 @@ def chai_with_code():
 
         return redirect(url_for("homepage"))
 
+    return redirect(url_for("login"))
+
 # User endpoints
 @app.route("/api/v1/user", methods=["POST", "GET"])
 def create_user():
