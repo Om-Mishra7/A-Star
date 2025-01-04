@@ -1297,7 +1297,7 @@ def chai_with_code():
         )
 
         session["user"]["user_profile"]["display_name"] = "ChaiAurCode"
-        session["user"]["user_profile"]["avatar_url"] = "https://skypix.om-mishra.com/?image_url=https://yt3.googleusercontent.com/1FEdfq3XpKE9UrkT4eOc5wLF2Bz-42sskTi0RkK4nPh4WqCbVmmrDZ5SVEV3WyvPdkfR8sw2=s160-c-k-c0x00ffffff-no-rj&height=40&width=40"
+        session["user"]["user_profile"]["avatar_url"] = "https://yt3.googleusercontent.com/1FEdfq3XpKE9UrkT4eOc5wLF2Bz-42sskTi0RkK4nPh4WqCbVmmrDZ5SVEV3WyvPdkfR8sw2=s160-c-k-c0x00ffffff-no-rj"
 
         mongodb_client.logs.insert_one(
             {

@@ -23,7 +23,9 @@
         </svg></span></a>
     <a href="/create-announcement">Create Announcement</a>
     <a href="/platform-information">Platform Information</a>
-    <a href="/logout"><img src="{{ session.user.user_profile.avatar_url }}" alt="avatar" class="avatar"></a>
+    <a href="/logout"><img
+        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=40&width=40"
+        alt="avatar" class="avatar"></a>
     {% else %}
     <a href="/contests">Contests</a>
     <a href="/problems">Problems</a>
