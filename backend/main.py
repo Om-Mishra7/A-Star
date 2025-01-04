@@ -593,7 +593,6 @@ def generate_problem_using_ai(level):
         print("Key error:", e)
         return None
 
-
 # Frontend endpoints
 
 @app.route("/", methods=["GET"])
@@ -1257,7 +1256,7 @@ def external_handler():
             "$setOnInsert": {
                 "user_account.primary_email": primary_email.lower().strip(),
                 "user_profile.display_name": user_given_name.title().strip(),
-                "user_profile.avatar_url": f'https://api.dicebear.com/9.x/notionists/svg?seed={user_info.get("givenName", "User").title()}',
+                "user_profile.avatar_url": f'https://api.dicebear.com/9.x/notionists/png?seed={user_info.get("givenName", "User").title()}',
                 "user_account.user_id": str(uuid.uuid4()),
                 "user_account.role": "user",
                 "user_account.created_at": now,  # Set created_at only on insert
