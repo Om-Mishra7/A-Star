@@ -100,6 +100,7 @@ def inject_global_vars():
             < datetime.now(tz=kolkata_tz)
         ),
         submissions_chart = generate_submissions_chart(),
+        current_year = datetime.now(tz=kolkata_tz).year,
         )
 
 
