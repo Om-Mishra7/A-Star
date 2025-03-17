@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ problem.problem_title }} | A*</title>
+
+  <!-- Load Monaco Editor -->
+  <script>
+    var require = { paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs" } };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
+
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="problem-metadata">
+        <h1>{{ problem.problem_title }}</h1>
+        <div class="problem-description" style="margin-bottom: 20px;">
+          {{ problem.problem_description | safe }}
+        </div>
+      </div>
+
+      <div class="problem-editor">
+        <div class="editor-header">
+          <input type="hidden" id="problem-id" value="{{ problem.problem_id }}">
+          <select id="theme-select">
+            <option value="vs-dark">Dark</option>
+            <option value="vs-light">Light</option>
+            <option value="hc-black">High Contrast</option>
+          </select>
+          <select id="language">
+            <option value="python" selected>Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+            <option value="c">C</option>
+          </select>
+          <button id="submit">Submit</button>
+        </div>
+
+        <div class="output-result">
+          <div class="output-header">Result</div>
+          <div id="output">
+            <p>No output yet. Submit your code to see results.</p>
+          </div>
+        </div>
+
+        <div id="monaco-editor" style="height: 400px; width: 100%;"></div>
+
+        <div class="top-submissions">
+          <h2>Top Submissions</h2>
+          <ul>
+            {% for submission in top_submissions %}
+            <li>
+              <span>{{ loop.index }})</span>
+              <img src="{{ submission.user_details.user_profile.avatar_url }}" alt="avatar">
+              <span>{{ submission.user_details.user_profile.display_name }}</span>
+              <span>{{ submission.language | capitalize }}</span>
+              <span>{{ submission.submission_status.time }}'s</span>
+              <span>{{ submission.submission_status.memory }}'KB</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/javascript/monaco-editor.js"></script>
+
+</body>
+
+</html>

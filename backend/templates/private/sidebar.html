@@ -1,0 +1,113 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.5/dist/chart.umd.min.js" defer></script>
+<div class="home_sidebar" style="padding-bottom: 20px;">
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Upcoming Contests</p>
+    <div class="home_sidebar_body">
+      {% for contest in upcoming_contests %}
+      <a href="/contests/{{ contest.contest_id }}">{{ contest.contest_title }}</a>
+      {% else %}
+      <p>No upcoming contests</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Leaderboard (Global)</p>
+    <div class="home_sidebar_body">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+        {% for user in global_leaderboard %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td style="display: flex; align-items: center;">
+            <img
+              src="https://skypix.om-mishra.com/?image_url={{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}&height=20&width=20"
+              alt="avatar" class="avatar" style="width: 20px; height: 20px; border-radius: 10px; margin-right: 5px;">
+            {{ user[1].profile.user_profile.display_name if user[1].profile and user[1].profile.user_profile else
+            'Anonymous' }}
+          </td>
+          <td>{{ user[1]["score"] }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">No users</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="home_sidebar_item">
+    <p class="home_sidebar_title">Recent Announcements</p>
+    <div class="home_sidebar_body">
+      <div class="home_sidebar_announcements">
+        {% for announcement in announcements %}
+        <div class="home_sidebar_announcement">
+          <a href="/announcements/{{ announcement.announcement_id }}" style="text-decoration: none;">{{
+            announcement.announcement_title }}</a>
+          <p>{{ format_date(announcement.created_at) }}</p>
+        </div>
+        {% else %}
+      </div>
+      <p>No announcements</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+<div class="home_sidebar_item">
+  <p class="home_sidebar_title">Past Contests</p>
+  <div class="home_sidebar_body">
+    {% for contest in past_contests %}
+    <a href="/contests/{{ contest.contest_id }}">{{ contest.contest_title }}</a>
+    {% else %}
+    <p>No past contests</p>
+    {% endfor %}
+  </div>
+</div>
+<div class="home_sidebar_item">
+  <p class="home_sidebar_title">Submissions (Last 7 days)</p>
+  <div class="home_sidebar_body">
+    <canvas id="submissions_chart"></canvas>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var ctx = document.getElementById('submissions_chart').getContext('2d');
+      var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [{% for date in submissions_chart.keys() %}'{{ date }}',{% endfor %}],
+      datasets: [{
+        label: 'Submissions',
+        data: [{% for date in submissions_chart.values() %}{{ date }}, {% endfor %}],
+      backgroundColor: '#cce5ff',
+      borderColor: '#004085',
+      borderWidth: 1
+        }]
+      },
+      options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      responsive: true,
+
+    }
+    });
+  });
+  </script>
+</div>
+</div>

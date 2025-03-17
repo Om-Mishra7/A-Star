@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ announcement.announcement_title }} | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="home_primary">
+        <div class="announcement-page">
+          <p class="announcement_title">{{
+            announcement.announcement_title }}</p>
+          <p class="announcement_date">{{ format_date(announcement.created_at) }}</p>
+          <div class="announcement_body">{{ announcement.announcement_body | safe }}</div>
+          {% if session.is_authenticated and session.user.user_account.role == "admin" %}
+          <form action="/api/v1/announcements/toogle-visibility" method="POST">
+            <input type="hidden" name="announcement_id" value="{{ announcement.announcement_id }}">
+            <button type="submit" class="btn btn--primary " style="margin-top: 20px;">{{ "Make Private" if
+              announcement.is_active else "Make Public" }}</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% include 'private/sidebar.html' %}
+  </main>
+
+  {% include 'private/footer.html' %}
+</body>
+
+</html>

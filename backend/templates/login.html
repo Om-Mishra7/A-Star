@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+
+  <link rel="stylesheet" href="/static/css/main.css">
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+  <main class="main-content">
+    <div class="home">
+      <div class="home_primary">
+        <div class="login-container">
+          <div onclick="document.location.href='/api/v1/auth/authenticate'" class="login-button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+              <path d="M44.522 44.5217H489.739V489.739H44.522V44.5217Z" fill="#F35325" />
+              <path d="M534.261 44.5217H979.478V489.739H534.261V44.5217Z" fill="#81BC06" />
+              <path d="M44.522 534.261H489.739V979.478H44.522V534.261Z" fill="#05A6F0" />
+              <path d="M534.261 534.261H979.478V979.478H534.261V534.261Z" fill="#FFBA08" />
+            </svg>
+            <p>Login with University Email</p>
+          </div>
+          <div class="message-container">
+            <p>In case you have not received your University Email, please contact the IT Department, at <a
+                href="mailto:itsupport@krmangalam.edu.in">itsupport@krmangalam.edu.in</a> with your information and they
+              will help you out.</p>
+          </div>
+        </div>
+      </div>
+      {% include 'private/sidebar.html' %}
+    </div>
+  </main>
+
+  {% include 'private/footer.html' %}
+
+</body>
+
+</html>

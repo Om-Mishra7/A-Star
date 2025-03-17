@@ -1,0 +1,12 @@
+requests
+redis
+python-dotenv
+pymongo
+Flask
+Flask-Session
+flask-cors
+flask-ckeditor[all]
+Flask-Limiter
+google-generativeai
+Markdown
+gunicorn

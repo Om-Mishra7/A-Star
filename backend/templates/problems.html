@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Problems | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+
+  <main class="main-content">
+    <div class="home">
+      <div class="home_primary">
+        <p class="home_title">All Problems</p>
+        <table class="problems_table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Difficulty</th>
+              <th>Solved %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for problem in all_problems %}
+            <tr onclick="window.location='/problems/{{ problem.problem_id }}';" style="cursor: pointer;">
+              <td>{{(problem._id | string)[-4:] | upper}}</td>
+              <td class="problem_title">{{ problem.problem_title }}<svg xmlns="http://www.w3.org/2000/svg" height="24px"
+                  viewBox="0 -960 960 960" width="24px" fill="undefined">
+                  <path
+                    d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h280v80H200v560h560v-280h80v280q0 33-23.5 56.5T760-120H200Zm188-212-56-56 372-372H560v-80h280v280h-80v-144L388-332Z" />
+                </svg></td>
+              <td>{{ problem.problem_level | capitalize }}</td>
+              <!-- Set max deciaml to 1 -->
+              <td>
+                {% if problem.problem_statistics.total_submissions | int > 0 %}
+                {{ '{:,.1f}%'.format(((problem.problem_statistics.total_accepted_submissions | int) /
+                (problem.problem_statistics.total_submissions | int) * 100)) }}
+                {% else %}
+                N/A
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'private/sidebar.html' %}
+    </div>
+
+  </main>
+
+  {% include 'private/footer.html' %}
+
+</body>
+
+</html>
