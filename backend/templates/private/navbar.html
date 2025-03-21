@@ -1,4 +1,17 @@
 <navbar>
+  <script>
+    function logout() {
+      fetch('https://accounts.om-mishra.com/auth/sign-out', {
+        method: 'GET',
+      }).then(response => {
+        if (response.status === 200) {
+          window.location.href = '/logout';
+        } else {
+          alert('There was an error logging out. Please try again.');
+        }
+      });
+    }
+  </script>
   <div class="navbar-header">
     <img src="/static/assets/a*-logo.png" alt="A* Logo" class="navbar-logo" style="height: 25px;"
       onclick="window.location.href = '/'" style="cursor: pointer;">
@@ -23,12 +36,15 @@
         </svg></span></a>
     <a href="/create-announcement">Create Announcement</a>
     <a href="/platform-information">Platform Information</a>
-    <a href="/logout"><img
-        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=40&width=40"
+    <a onclick="logout()"><img
+        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
         alt="avatar" class="avatar"></a>
     {% else %}
     <a href="/contests">Contests</a>
     <a href="/problems">Problems</a>
+    <a onclick="logout()"><img
+        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
+        alt="avatar" class="avatar"></a>
     {% endif %}
     {% else %}
     <a href="/login">Login</a>

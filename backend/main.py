@@ -20,6 +20,7 @@ from flask_ckeditor.utils import cleanify
 from zoneinfo import ZoneInfo
 import google.generativeai as genai
 import markdown
+import secrets
 
 
 # Get the current time in the "Asia/Kolkata" timezone
@@ -652,7 +653,9 @@ def platform_information():
 def login():
     if session.get("is_authenticated"):
         return redirect(url_for("homepage"))
-    return render_template("login.html")
+    session["auth_state"] = secrets.token_hex(16)
+    return render_template("login.html", redirect_uri=f'https://accounts.om-mishra.com/api/v1/oauth2/authorize?client_id={os.getenv("CLIENT_ID")}&state={session["auth_state"]}')
+
 
 
 @app.route("/logout", methods=["GET"])
@@ -1140,22 +1143,6 @@ def health():
         {"response_code": 200, "message": "OK", "identifier": str(uuid.uuid4())}
     )
 
-
-# Auth endpoints
-@app.route("/api/v1/auth/authenticate", methods=["GET"])
-def authenticate():
-    if session.get("is_authenticated"):
-        return redirect(url_for("homepage"))
-    return redirect(
-        f"https://login.microsoftonline.com/{os.getenv('TENANT_ID')}/oauth2/v2.0/authorize"
-        f"?client_id={os.getenv('CLIENT_ID')}"
-        f"&response_type=code"
-        f"&redirect_uri={os.getenv('REDIRECT_URI')}"
-        f"&response_mode=query"
-        f"&scope=openid profile email User.Read"
-    )
-
-
 @app.route("/api/v1/auth/external/_handler", methods=["GET"])
 def external_handler():
     if session.get("is_authenticated"):
@@ -1163,90 +1150,43 @@ def external_handler():
 
     code = request.args.get("code")
 
-    # Exchange authorization code for access token
-    token_url = (
-        f"https://login.microsoftonline.com/{os.getenv('TENANT_ID')}/oauth2/v2.0/token"
-    )
-    payload = {
-        "client_id": os.getenv("CLIENT_ID"),
-        "scope": "openid profile email",
-        "code": code,
-        "redirect_uri": os.getenv("REDIRECT_URI"),
-        "grant_type": "authorization_code",
-        "client_secret": os.getenv("CLIENT_SECRET"),
-    }
-
-    token_response = requests.post(token_url, data=payload)
-    token_data = token_response.json()
-
-    if "access_token" not in token_data:
-        return (
-            jsonify(
-                {
-                    "response_code": 400,
-                    "message": "Token exchange failed",
-                    "identifier": str(uuid.uuid4()),
-                }
-            ),
-            400,
-        )
-
-    access_token = token_data["access_token"]
-
-    # Use the access token to call Microsoft Graph API
-    user_info_response = requests.get(
-        "https://graph.microsoft.com/v1.0/me",
+    oauth_response = requests.post(
+        "https://accounts.om-mishra.com/api/v1/oauth2/user-info",
         headers={
-            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/json",
             "Content-Type": "application/json",
+        },
+        json={
+            "client_id": os.getenv("CLIENT_ID"),
+            "client_secret": os.getenv("CLIENT_SECRET"),
+            "code": code,
         },
     )
 
-    if user_info_response.status_code != 200:
-        return (
-            jsonify(
-                {
-                    "response_code": 400,
-                    "message": "Failed to get user info",
-                    "identifier": str(uuid.uuid4()),
-                }
-            ),
-            400,
+    if oauth_response.status_code != 200:
+        return redirect(
+            url_for(
+                "index",
+                message="The authentication attempt failed, due to invalid response from GitHub!",
+            )
         )
-
-    user_info = user_info_response.json()
-
-    user_given_name = user_info.get("givenName", "Unknown")
-    primary_email = (
-        user_info.get("mail").lower().strip() if "mail" in user_info else None
-    )
-
-    if primary_email is None:
-        return (
-            jsonify(
-                {
-                    "response_code": 400,
-                    "message": "Primary email not found",
-                    "identifier": str(uuid.uuid4()),
-                }
-            ),
-            400,
-        )
+        
+    user_data = oauth_response.json()["user"]
 
     # MongoDB user query and update
     now = datetime.utcnow()  # Current timestamp for created_at and last_logged_in_at
 
     # Update user details or insert if not exists
     update_result = mongodb_client.users.update_one(
-        {"user_account.primary_email": primary_email},
+        {"user_account.primary_email": user_data["user_account"]["user_primary_email"]},
         {
             "$set": {
                 "user_account.last_logged_in_at": now  # Update last_logged_in_at for every login
             },
             "$setOnInsert": {
-                "user_account.primary_email": primary_email.lower().strip(),
-                "user_profile.display_name": user_given_name.title().strip(),
-                "user_profile.avatar_url": f'https://api.dicebear.com/9.x/notionists/png?seed={user_info.get("givenName", "User").title()}',
+                "user_account.primary_email": user_data["user_account"]["user_primary_email"],
+                "user_profile.display_name": user_data["user_profile"]["user_display_name"],
+                "user_profile.avatar_url": user_data["user_profile"]["user_profile_picture"] if user_data["user_profile"].get("user_profile_picture") else f"https://api.dicebear.com/9.x/initials/png?seed={user_data['user_profile']['user_display_name']}",
                 "user_account.user_id": str(uuid.uuid4()),
                 "user_account.role": "user",
                 "user_account.created_at": now,  # Set created_at only on insert
@@ -1259,7 +1199,7 @@ def external_handler():
     if update_result.acknowledged:
         session["is_authenticated"] = True
         session["user"] = mongodb_client.users.find_one(
-            {"user_account.primary_email": primary_email}, {"_id": 0}
+            {"user_account.primary_email": user_data["user_account"]["user_primary_email"]}, {"_id": 0}
         )
         return redirect(url_for("homepage"))
 
@@ -1273,34 +1213,6 @@ def external_handler():
         ),
         400,
     )
-
-#Special guest endpoint - ChaiWithCode
-@app.route("/chai-aur-code", methods=["GET"])
-def chai_with_code():
-    if request.args.get("temp_login_key") == "udE6mKEQtkNK6MT7DkfXfGm3rjTz9zvC":
-        # Create a user session with email as 2201350010@krmu.edu.in
-        
-        session["is_authenticated"] = True
-        session["user"] = mongodb_client.users.find_one(
-            {"user_account.primary_email": "2201350010@krmu.edu.in"}, {"_id": 0}
-        )
-
-        session["user"]["user_profile"]["display_name"] = "ChaiAurCode"
-        session["user"]["user_profile"]["avatar_url"] = "https://yt3.googleusercontent.com/1FEdfq3XpKE9UrkT4eOc5wLF2Bz-42sskTi0RkK4nPh4WqCbVmmrDZ5SVEV3WyvPdkfR8sw2=s160-c-k-c0x00ffffff-no-rj"
-
-        mongodb_client.logs.insert_one(
-            {
-                "log_id": str(uuid.uuid4()),
-                "log_type": "special_login",
-                "log_description": "Special login for ChaiWithCode",
-                "log_ip_address": request.headers.get("CF-Connecting-IP"),
-                "created_at": datetime.now(),
-            }
-        )
-
-        return redirect(url_for("homepage"))
-
-    return redirect(url_for("login"))
 
 # User endpoints
 @app.route("/api/v1/user", methods=["POST", "GET"])

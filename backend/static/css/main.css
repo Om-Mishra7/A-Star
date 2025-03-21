@@ -61,8 +61,7 @@ navbar {
   width: 40px;
   height: 40px;
   border-radius: 5px;
-  padding: .1rem;
-  background-color: #000;
+  border: 1px solid #555;
 }
 
 .navbar-links a {
