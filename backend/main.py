@@ -1191,6 +1191,9 @@ def external_handler():
                 "user_account.role": "user",
                 "user_account.created_at": now,  # Set created_at only on insert
                 "user_account.is_active": True,
+                "user_account.is_verified": True,
+                "university_details": {
+                },
             },
         },
         upsert=True,
@@ -1221,7 +1224,10 @@ def create_user():
         return jsonify(
             {
                 "response_code": 200,
-                "data": session["user"],
+                "data": mongodb_client.users.find_one(
+                    {"user_account.user_id": session["user"]["user_account"]["user_id"]},
+                    {"_id": 0},
+                ),
                 "identifier": str(uuid.uuid4()),
             }
         )
