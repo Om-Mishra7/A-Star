@@ -1242,6 +1242,72 @@ def create_user():
         401,
     )
 
+@app.route("/api/v1/user/university-details", methods=["POST"])
+def update_university_details():
+    if session.get("is_authenticated"):
+
+        student_id = request.form.get("universityRollNumber")
+        student_photo = request.files.get("profilePicture")
+
+        if student_id and student_photo:
+            response = requests.post(
+                "https://api.cdn.om-mishra.com/v1/upload-file",
+                headers={"X-Authorization": "eyJhbG"},
+                files={"file": request.files.get("profilePicture")},
+                data={"object_path": f"users/{session['user']['user_account']['user_id']}/profile_picture/{uuid.uuid4()}.{student_photo.filename.split('.')[-1]}"},
+            )
+
+            print(response.json())
+
+            if response.status_code != 200:
+                return jsonify({'status': 'error', 'message': 'Failed to upload image!'}), 500
+            
+            image_url = response.json().get('file_url')
+
+            mongodb_client.users.update_one(
+                {"user_account.user_id": session["user"]["user_account"]["user_id"]},
+                {
+                    "$set": {
+                        "university_details.student_id": student_id,
+                        "university_details.student_photo": image_url,
+                        "user_profile.avatar_url": image_url,
+                    }
+                }
+            )
+
+            session["user"]["user_profile"]["avatar_url"] = image_url
+
+            return jsonify(
+                {
+                    "response_code": 200,
+                    "message": "University details updated successfully",
+                    "identifier": str(uuid.uuid4()),
+                }
+            )
+        print(student_id, student_photo)
+        return (
+            jsonify(
+                {
+                    "response_code": 400,
+                    "message": "Student ID and student photo are required",
+                    "identifier": str(uuid.uuid4()),
+                }
+            ),
+            400,
+        )
+    return (
+        jsonify(
+            {
+                "response_code": 401,
+                "message": "Unauthorized",
+                "identifier": str(uuid.uuid4()),
+            }
+        ),
+        401,
+    )
+
+    
+
 
 # System endpoints
 @app.route("/api/v1/create-announcement", methods=["POST"])

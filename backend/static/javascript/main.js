@@ -12,9 +12,9 @@ document.onreadystatechange = function () {
     })
         .then((response) => response.json())
         .then((data) => {
-            // Safe check for university_details and student_id
-            if (data.university_details === undefined || data.university_details.student_id === undefined) {
-                // Show the modal if student ID is missing
+            // Safe check for university_details and university roll number
+            if (data.university_details === undefined || data.university_details.university_roll_number === undefined) {
+                // Show the modal if the university roll number is missing
                 showModal();
             }
         })
@@ -31,12 +31,12 @@ function showModal() {
                 <h2>Complete Your Profile</h2>
                 <form id="studentForm">
                     <div>
-                        <label for="studentId">Student ID:</label>
-                        <input type="text" id="studentId" name="studentId" required />
+                        <label for="universityRollNumber">University Roll Number:</label>
+                        <input type="text" id="universityRollNumber" name="universityRollNumber" required />
                     </div>
                     <div>
-                        <label for="studentPhoto">Upload Photo:</label>
-                        <input type="file" id="studentPhoto" name="studentPhoto" accept="image/*" required />
+                        <label for="profilePicture">Profile Picture (Your Face):</label>
+                        <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required />
                     </div>
                     <button type="submit">Submit</button>
                 </form>
@@ -66,15 +66,52 @@ function showModal() {
 
         /* Modal content */
         .modal-content {
-            background-color: white;
+            background-color: #fff;
             padding: 20px;
             border-radius: 8px;
             width: 400px;
+            max-width: 100%;
             text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-family: 'Arial', sans-serif;
+            text-align: left;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: block;
+            text-align: left;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
         }
 
         button {
-            margin-top: 10px;
+            background-color: #004085;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
         }
 
         /* Disable scrolling when the modal is open */
@@ -93,24 +130,35 @@ function showModal() {
     const form = document.getElementById('studentForm');
     form.addEventListener('submit', function (e) {
         e.preventDefault();
-        const studentId = document.getElementById('studentId').value;
-        const studentPhoto = document.getElementById('studentPhoto').files[0];
 
-        // Process the form data (e.g., send to API)
-        console.log('Student ID:', studentId);
-        console.log('Photo:', studentPhoto);
+        const universityRollNumber = document.getElementById('universityRollNumber').value;
+        const profilePicture = document.getElementById('profilePicture').files[0];
 
-        // Here you could send the data to the backend, e.g., using fetch()
+        if (!universityRollNumber || !profilePicture) {
+            alert("Please fill in all the fields before submitting.");
+            return;
+        }
 
-        // Hide the modal after submission (for demo purposes)
-        modal.style.display = 'none';
-        document.body.classList.remove('modal-open');
-    });
+        // Create FormData for the submission
+        let formData = new FormData();
+        formData.append('universityRollNumber', universityRollNumber);
+        formData.append('profilePicture', profilePicture);
 
-    // Close modal event handler
-    const closeModalButton = document.getElementById('closeModal');
-    closeModalButton.addEventListener('click', function () {
-        modal.style.display = 'none';
-        document.body.classList.remove('modal-open');
+        // Send the data to the server
+        fetch('/api/v1/user/university-details', {
+            method: 'POST',
+            body: formData,
+        }).then((response) => {
+            if (response.ok) {
+                // Close the modal after successful submission
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+            } else {
+                alert('There was an issue submitting your profile details. Please try again.');
+            }
+        }).catch((error) => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again later.');
+        });
     });
 }
