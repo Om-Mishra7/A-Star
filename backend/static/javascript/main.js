@@ -13,7 +13,7 @@ document.onreadystatechange = function () {
         .then((response) => response.json())
         .then((data) => {
             // Safe check for university_details and university roll number
-            if (data.university_details === undefined || data.university_details.university_roll_number === undefined) {
+            if (data.data.university_details === undefined || data.data.university_details.student_id === undefined) {
                 // Show the modal if the university roll number is missing
                 showModal();
             }
