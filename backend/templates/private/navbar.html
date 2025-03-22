@@ -3,6 +3,7 @@
     function logout() {
       fetch('https://accounts.om-mishra.com/auth/sign-out', {
         method: 'GET',
+        credentials: 'include',
       }).then(response => {
         if (response.status === 200) {
           window.location.href = '/logout';
