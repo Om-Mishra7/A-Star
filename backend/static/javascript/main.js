@@ -167,6 +167,7 @@ function showModal() {
             alert(
               "The image you uploaded is too large. Please upload an image less than 1MB in size."
             );
+            return;
           }
           alert(
             "There was an issue submitting your profile details. Please try again."
