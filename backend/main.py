@@ -1322,6 +1322,18 @@ def update_university_details():
         student_id = request.form.get("universityRollNumber")
         student_photo = request.files.get("profilePicture")
 
+        if not student_id.isdigit() or len(student_id) != 10:
+            return (
+                jsonify(
+                    {
+                        "response_code": 400,
+                        "message": "Student ID must be a 10 digit number",
+                        "identifier": str(uuid.uuid4()),
+                    }
+                ),
+                400,
+            )
+
         if student_id and student_photo:
             response = requests.post(
                 "https://api.cdn.om-mishra.com/v1/upload-file",
@@ -1329,8 +1341,6 @@ def update_university_details():
                 files={"file": request.files.get("profilePicture")},
                 data={"object_path": f"users/{session['user']['user_account']['user_id']}/profile_picture/{uuid.uuid4()}.{student_photo.filename.split('.')[-1]}"},
             )
-
-            print(response.json())
 
             if response.status_code != 200:
                 return jsonify({'status': 'error', 'message': 'Failed to upload image!'}), 500
