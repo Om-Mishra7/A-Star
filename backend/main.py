@@ -66,7 +66,7 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 @app.after_request
 def headers(response):
     if request.path.startswith("/static/"):
-        response.cache_control.max_age = 3600
+        response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate, immutable"
     if request.path.startswith("/api/"):
         response.headers["Content-Type"] = "application/json"
         response.headers["Cache-Control"] = "private, max-age=3600, must-revalidate"
