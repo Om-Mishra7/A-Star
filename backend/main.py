@@ -663,6 +663,12 @@ def generate_problem_using_ai(level):
 
 # Frontend endpoints
 
+@app.route("/users", methods=["GET"])
+def users():
+    if session.get("is_authenticated") is None or session["user"]["user_account"]["role"] != "admin":
+        return redirect(url_for("homepage"))
+    return render_template("users.html", users=list(mongodb_client.users.find({}, {"_id": 0})))
+
 @app.route("/", methods=["GET"])
 def homepage():
     return render_template("home.html")

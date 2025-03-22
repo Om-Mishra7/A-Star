@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A* | Users</title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+</head>
+
+<body>
+  <table>
+    <thead>
+      <tr>
+        <th>Index</th>
+        <th>Avatar</th>
+        <th>Name</th>
+        <th>Roll No.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>
+          <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=80&width=80"
+            alt="avatar" style="width: 80px; height: 80px; border-radius: 5px;">
+        </td>
+        <td>{{ user.user_profile.display_name }}</td>
+        <td>{{ user.university_details.student_id if user.university_details else 'N/A' }}</td>
+      </tr>
+      {% else %}
+      <p>No users</p>
+      {% endfor %}
+
+</body>
+
+</html>
