@@ -163,6 +163,11 @@ function showModal() {
           document.body.classList.remove("modal-open");
           window.location.reload();
         } else {
+          if (response.status === 413) {
+            alert(
+              "The image you uploaded is too large. Please upload an image less than 1MB in size."
+            );
+          }
           alert(
             "There was an issue submitting your profile details. Please try again."
           );
