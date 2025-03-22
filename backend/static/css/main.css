@@ -185,7 +185,7 @@ main {
   justify-content: flex-start;
   align-items: center;
   gap: 20px;
-  width: 75%;
+  width: 70%;
   min-height: calc(100vh - 100px);
 }
 
@@ -195,7 +195,7 @@ main {
   justify-content: flex-start;
   align-items: center;
   gap: 20px;
-  width: 25%;
+  width: 30%;
   min-height: 100vh;
 }
 
@@ -438,6 +438,7 @@ main {
 table {
   border-collapse: collapse;
   width: 100%;
+  border: 1px solid #ddd;
 }
 
 th {
@@ -446,9 +447,9 @@ th {
 
 th,
 td {
-  border: 1px solid #ddd;
+  border-left: 1px solid #ddd;
   text-align: left;
-  padding: 8px;
+  padding: 8px; 
 }
 
 td.problem_title {

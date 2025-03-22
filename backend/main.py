@@ -480,31 +480,36 @@ def generate_contest_report(contest, contest_submissions, contest_problems, cont
 def format_ai_text(text):
     return text
 
-def generate_problem_using_ai(level):
+import requests
+import json
+import os
+import subprocess  # Added for running the solution
+
+def generate_problem_using_ai(level): 
     example_problem_description = """<p><strong>Parentheses Balancing</strong></p>
 
-    <p>You are given a collection of strings. Each string consists only of the characters &#39;(&#39;, &#39;)&#39;, &#39;{&#39;, &#39;}&#39;, &#39;[&#39;, and &#39;]&#39;. Your task is to determine, for each string, whether the parentheses within it are balanced. A string is considered to have balanced parentheses if it meets the following two conditions:</p>
+    <p>You are given a collection of strings. Each string consists only of the characters '(', ')', '{', '}', '[', and ']'. Your task is to determine, for each string, whether the parentheses within it are balanced. A string is considered to have balanced parentheses if it meets the following two conditions:</p>
 
-    <p>1.&nbsp;<strong>Matching Pairs:</strong>&nbsp;Every opening parenthesis (such as &#39;(&#39;, &#39;{&#39;, or &#39;[&#39;) must have a corresponding closing parenthesis of the same type (&#39;)&#39;, &#39;}&#39;, or &#39;]&#39; respectively).</p>
+    <p>1. <strong>Matching Pairs:</strong> Every opening parenthesis (such as '(', '{', or '[') must have a corresponding closing parenthesis of the same type (')', '}', or ']' respectively).</p>
 
-    <p>2.&nbsp;<strong>Correct Order:</strong>&nbsp;The parentheses must be closed in the correct order. For instance, &#39;({[]})&#39; is balanced, while &#39;([)]&#39; is not because the closing square bracket &#39;]&#39; appears before the closing parenthesis &#39;)&#39;.</p>
+    <p>2. <strong>Correct Order:</strong> The parentheses must be closed in the correct order. For instance, '({[]})' is balanced, while '([)]' is not because the closing square bracket ']' appears before the closing parenthesis ')'.</p>
 
-    <p>&nbsp;</p>
+    <p> </p>
 
     <p><strong>Example:</strong></p>
 
-    <p>For example, the string &#39;()[]{}&#39; would be considered balanced, while the string &#39;([)]&#39; would not be considered balanced.</p>
+    <p>For example, the string '()[]{}' would be considered balanced, while the string '([)]' would not be considered balanced.</p>
 
-    <p>&nbsp;</p>
+    <p> </p>
 
     <p><strong>Input Format:</strong></p>
 
     <p>The input consists of multiple lines separated by \n, starting with a single integer, N, representing the number of test cases. Each of the following N lines contains a string made up of only the characters (, ), {, }, [, and ]. Each string is a sequence of these characters with no spaces in between.<br />
-    &nbsp;</p>
+     </p>
 
     <p><strong>Output Format:</strong></p>
 
-    <p>For each input string, output a single line containing either &#39;YES&#39; if the parentheses are balanced or &#39;NO&#39; if they are not.</p>
+    <p>For each input string, output a single line containing either 'YES' if the parentheses are balanced or 'NO' if they are not.</p>
 
     <p><br />
     <strong>Input Example 1:</strong></p>
@@ -520,27 +525,46 @@ def generate_problem_using_ai(level):
     NO<br />
     NO</code></div>"""
 
-    prompt = f"""Generate a unique competitive programming problem of difficulty level {level}. The problem should follow this structure and should not be one of these or adjacent to these problems in terms of similarity [{mongodb_client.problems.find({}, {"problem_title": 1}).sort("created_at", -1)}]. The problem should be unique and follow the specified difficulty level. Use the provided example problem description as a reference for the structure and formatting of the problem description.
+    # --- Build the prompt ---
+    prompt = f"""
+    Generate a unique competitive programming problem suitable for difficulty level '{level}'.  The problem should be original and not similar to existing problems. Avoid problems directly related to or easily derived from these titles: {[doc['problem_title'] for doc in mongodb_client.problems.find({}, {"problem_title": 1}).sort("created_at", -1)]}.
 
-    - **Title:** A concise, meaningful title.
-    - **Description:** Detailed problem description, including requirements and constraints in clear and structured HTML format like this: {example_problem_description}
-    - **Input Format:** A clear explanation of input, including any required delimiters.
-    - **Output Format:** Describe what each output line should contain for each input test case.
-    - **Example:** Include at least one example with input and output that highlights typical cases.
-    - **Test Cases:** Include at least 20(very important) diverse stdin and stdout cases, including edge cases and corner cases in the stdin, stdout format, example: stdin: {mongodb_client.problems.find_one({}, {"problem_stdin": 1})["problem_stdin"]}, stdout: {mongodb_client.problems.find_one({}, {"problem_stdout": 1})["problem_stdout"]}, The stdout should be the expected output for the given stdin and should be in the same order as the stdin and the stdout should be checked and verified by the AI model.
+    **Requirements:**
 
-    Please respond with the following JSON structure:
+    1.  **Structure:**  Follow the structure outlined below (Title, Description, Input Format, Output Format, Examples, Test Cases).  Use HTML formatting as demonstrated in the example problem description.
+    2.  **Uniqueness:** The problem must be distinct and not a minor variation of a well-known problem.
+    3.  **Difficulty:**  Maintain the specified difficulty level consistently throughout the problem (description, test cases, solution complexity).
+    4.  **Clarity:**  The problem description must be unambiguous and easy to understand.  Use clear and concise language.
+    5.  **Multiple Examples:**  Provide *at least three* distinct input/output examples in the "Examples" section. These examples should cover different aspects of the problem.
+    6.  **Test Cases:** Generate *at least 20* diverse test cases.  Include:
+        *   **Normal Cases:**  Typical inputs and outputs.
+        *   **Edge Cases:**  Inputs at the boundaries of the problem constraints.
+        *   **Corner Cases:**  Unusual or tricky inputs that might expose flaws in a naive solution.
+        *   **Large Inputs:** Test cases with large input sizes to check for efficiency.
+    7.  **Solution:**  Provide a *correct and efficient* solution in Python.  This solution will be used to automatically generate the `problem_stdout` from the `problem_stdin`.
+    8.   **Input/Output Format:** Input consists of multiple test cases. The first line contains a single integer T (number of test cases). Each set of lines describes a test case. Be specific about what each line or set of lines in each test case represents. For *each* test case, provide the corresponding output in the specified format.
+
+    **Example Problem Description (for formatting reference):**
+
+    {example_problem_description}
+
+    **Output JSON Structure (Strictly Adhere to This):**
+
     ```json
     {{
-    "problem_title": "string",
-    "problem_description": "string",
-    "problem_stdin": "string",
-    "problem_stdout": "string",
-    "problem_level": "{level}",
-    "problem_tags": ["tag1", "tag2", ...]
+        "problem_title": "string",
+        "problem_description": "string",
+        "problem_stdin": "string",
+        "problem_stdout": "string",  // This will be generated, but include the key
+        "problem_level": "{level}",
+        "problem_tags": ["tag1", "tag2", ...],
+        "solution": "python code string"
     }}
     ```
-    Ensure the problem is unique and follows the specified difficulty level. Use the provided example problem description as a reference for the structure and formatting of the problem description, also ensure that the input will be sending multiple test cases therefore tell user what each set of lines will contain and what the output should be for each set of lines."""
+
+    **Generate the problem now, following all instructions carefully.**
+    """
+    # --- End of Prompt ---
 
     response = requests.post(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent?key=" + os.environ["GEMINI_API_KEY"],
@@ -557,43 +581,77 @@ def generate_problem_using_ai(level):
                     }
                 ],
                 "generationConfig": {
-                    "response_mime_type": "application/json"
+                    "response_mime_type": "application/json",
+                    "temperature": 0.7,  # Adjust for creativity (0.7 is a good balance)
+                    "maxOutputTokens": 8000, # Add to prevent trunctation
+                    "topP": 0.95,
+                    "topK": 40,
                 }
             }
         ),
-        )
-    
-    data = response.json()
+    )
 
-    # Navigate through the structure to access the problem parameters
+    if response.status_code != 200:
+        print(f"Error: Gemini API request failed with status code {response.status_code}")
+        print(response.text)  # Print the error response for debugging
+        return None
+
     try:
+        data = response.json()
         content_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        try:
-            problem_data = json.loads(content_text)
-        except json.JSONDecodeError:
-            return None
+        problem_data = json.loads(content_text)
 
-        # Extract specific problem parameters
-        problem_title = problem_data.get("problem_title", "")
-        problem_description = problem_data.get("problem_description", "")
+        # --- Solution Execution and Output Generation ---
         problem_stdin = problem_data.get("problem_stdin", "")
-        problem_stdout = problem_data.get("problem_stdout", "")
-        problem_level = problem_data.get("problem_level", "")
-        problem_tags = problem_data.get("problem_tags", [])
+        solution_code = problem_data.get("solution", "")
 
+        if not problem_stdin or not solution_code:
+            print("Error: Missing stdin or solution code.")
+            return None
+        
+        # Save solution to a temporary file
+        with open("temp_solution.py", "w") as f:
+            f.write(solution_code)
+        #Run the solution with stdin and capture stdout
+        try:
+            process = subprocess.run(
+                ["python3", "temp_solution.py"],
+                input=problem_stdin,
+                text=True,
+                capture_output=True,
+                check=True,  # Raise an exception if the process fails
+                timeout=10   # 10-second timeout
+            )
+            problem_stdout = process.stdout
+            problem_data["problem_stdout"] = problem_stdout #Correct stdout
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error: Solution execution failed. Return code: {e.returncode}")
+            print(f"Stderr:\n{e.stderr}")
+            return None
+        except subprocess.TimeoutExpired:
+            print("Error: Solution timed out.")
+            return None
+        finally:
+            # Clean up the temporary file
+            if os.path.exists("temp_solution.py"):
+                os.remove("temp_solution.py")
+        # --- End of Solution Execution ---
 
         return (
-            problem_title,
-            problem_description,
-            problem_stdin,
-            problem_stdout,
-            problem_level,
-            problem_tags,
+            problem_data.get("problem_title", ""),
+            problem_data.get("problem_description", ""),
+            problem_stdin,  # Use the original stdin
+            problem_stdout, # Use generated stdout
+            problem_data.get("problem_level", ""),
+            problem_data.get("problem_tags", []),
         )
 
-    except KeyError as e:
-        print("Key error:", e)
+    except (KeyError, json.JSONDecodeError, IndexError) as e:
+        print(f"Error processing API response: {e}")
+        print(f"Response content:\n{response.text}")  # Print raw response for debugging
         return None
+    
 
 # Frontend endpoints
 
@@ -875,9 +933,9 @@ def contest(contest_id):
                 {
                     "problem_id": {
                         "$in": [
-                            contest["contest_problems"]["easy_problem"],
-                            contest["contest_problems"]["medium_problem"],
-                            contest["contest_problems"]["hard_problem"],
+                            contest["contest_problems"]["contest_first_problem"],
+                            contest["contest_problems"]["contest_second_problem"],
+                            contest["contest_problems"]["contest_third_problem"],
                         ]
                     }
                 },
@@ -895,9 +953,9 @@ def contest(contest_id):
             {
                 "problem_id": {
                     "$in": [
-                        contest["contest_problems"]["easy_problem"],
-                        contest["contest_problems"]["medium_problem"],
-                        contest["contest_problems"]["hard_problem"],
+                        contest["contest_problems"]["contest_first_problem"],
+                        contest["contest_problems"]["contest_second_problem"],
+                        contest["contest_problems"]["contest_third_problem"],
                     ]
                 }
             }
@@ -1083,9 +1141,9 @@ def contest_results(contest_id):
                 {
                     "problem_id": {
                         "$in": [
-                            contest["contest_problems"]["easy_problem"],
-                            contest["contest_problems"]["medium_problem"],
-                            contest["contest_problems"]["hard_problem"],
+                            contest["contest_problems"]["contest_first_problem"],
+                            contest["contest_problems"]["contest_second_problem"],
+                            contest["contest_problems"]["contest_third_problem"],
                         ]
                     }
                 },
@@ -1322,7 +1380,7 @@ def create_announcement_api():
                     "announcement_id": str(uuid.uuid4()),
                     "announcement_title": announcement_title,
                     "announcement_body": announcement_body,
-                    "created_at": datetime.now(),
+                    "created_at": datetime.now(tz=kolkata_tz),
                     "is_active": True,
                 }
             )
