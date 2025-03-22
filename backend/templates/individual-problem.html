@@ -58,21 +58,36 @@
 
         <div class="top-submissions">
           <h2>Top Submissions</h2>
-          <ul>
-            {% for submission in top_submissions %}
-            <li>
-              <span>{{ loop.index }})</span>
-              <img src="{{ submission.user_details.user_profile.avatar_url }}" alt="avatar">
-              <span>{{ submission.user_details.user_profile.display_name }}</span>
-              <span>{{ submission.language | capitalize }}</span>
-              <span>{{ submission.submission_status.time }}'s</span>
-              <span>{{ submission.submission_status.memory }}'KB</span>
-            </li>
-            {% endfor %}
-          </ul>
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Username</th>
+                <th>Language</th>
+                <th>Time</th>
+                <th>Memory</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for submission in top_submissions %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td style="display: flex; align-items: center;">
+                  <img
+                    src="https://skypix.om-mishra.com/?image_url={{ submission.user_details.user_profile.avatar_url }}&height=25&width=25"
+                    alt="avatar" class="avatar"
+                    style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
+                  <span>{{ submission.user_details.user_profile.display_name }}</span>
+                </td>
+                <td>{{ submission.language }}</td>
+                <td>{{ submission.submission_status.time }}'s</td>
+                <td>{{ submission.submission_status.memory }}'KB</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
   </main>
 
   <script src="/static/javascript/monaco-editor.js"></script>

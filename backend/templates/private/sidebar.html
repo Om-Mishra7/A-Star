@@ -22,24 +22,23 @@
           </tr>
         </thead>
         <tbody>
-        </tbody>
-        {% for user in global_leaderboard %}
-        <tr>
-          <td>{{ loop.index }}</td>
-          <td style="display: flex; align-items: center;">
-            <img
-              src="https://skypix.om-mishra.com/?image_url={{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}&height=25&width=25"
-              alt="avatar" class="avatar" style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
-            {{ user[1].profile.user_profile.display_name if user[1].profile and user[1].profile.user_profile else
-            'Anonymous' }}
-          </td>
-          <td>{{ user[1]["score"] }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="3">No users</td>
-        </tr>
-        {% endfor %}
+          {% for user in global_leaderboard %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td style="display: flex; align-items: center;">
+              <img
+                src="https://skypix.om-mishra.com/?image_url={{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}&height=25&width=25"
+                alt="avatar" class="avatar" style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
+              {{ user[1].profile.user_profile.display_name if user[1].profile and user[1].profile.user_profile else
+              'Anonymous' }}
+            </td>
+            <td>{{ user[1]["score"] }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3">No users</td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -110,4 +109,32 @@
   });
   </script>
 </div>
+<div class="home_sidebar_item">
+  <p class="home_sidebar_title">New Users</p>
+  <div class="home_sidebar_body">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Roll No.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in new_users %}
+        <tr>
+          <td style="display: flex; align-items: center;">
+            <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=25&width=25"
+              alt="avatar" class="avatar" style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
+            {{ user.user_profile.display_name}}
+          </td>
+          <td>{{ user.university_details.student_id if user.university_details.student_id else 'N/A' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">No users</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>

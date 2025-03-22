@@ -102,6 +102,10 @@ def inject_global_vars():
         ),
         submissions_chart = generate_submissions_chart(),
         current_year = datetime.now(tz=kolkata_tz).year,
+
+        new_users = list(
+            mongodb_client.users.find({}, {"_id": 0, "university_details.student_id": 1, "user_profile.avatar_url": 1, "user_profile.display_name": 1, }, sort=[("user_account.created_at", -1)], limit=10)
+            ),
         )
 
 
@@ -848,7 +852,7 @@ def problem(problem_id):
         )
 
         if top_submissions is not None:
-            top_submissions.sort(key=lambda x: x["submission_status"]["time"])
+            top_submissions.sort(key=lambda x: (x["submission_status"]["time"], x["submission_status"]["memory"], x["user_id"]))
         if session["user"]["user_account"]["role"] == "admin":
             return render_template(
                 "individual-problem.html",
