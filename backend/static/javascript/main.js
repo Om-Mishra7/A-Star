@@ -1,31 +1,36 @@
 document.onreadystatechange = function () {
-    if (document.readyState === 'complete') {
-        console.log('Hey there developer, welcome to the console. If you are looking for a project to contribute to, email me at: a-star-console@om-mishra.com');
-    }
+  if (document.readyState === "complete") {
+    console.log(
+      "Hey there developer, welcome to the console. If you are looking for a project to contribute to, email me at: a-star-console@om-mishra.com"
+    );
+  }
 
-    // Check if user has completed the profile
-    fetch('/api/v1/user', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+  // Check if user has completed the profile
+  fetch("/api/v1/user", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      // Safe check for university_details and university roll number
+      if (
+        data.data.university_details === undefined ||
+        data.data.university_details.student_id === undefined
+      ) {
+        // Show the modal if the university roll number is missing
+        showModal();
+      }
     })
-        .then((response) => response.json())
-        .then((data) => {
-            // Safe check for university_details and university roll number
-            if (data.data.university_details === undefined || data.data.university_details.student_id === undefined) {
-                // Show the modal if the university roll number is missing
-                showModal();
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-        });
+    .catch((error) => {
+      console.error("Error:", error);
+    });
 };
 
 function showModal() {
-    // Create and append the modal HTML dynamically
-    const modalHTML = `
+  // Create and append the modal HTML dynamically
+  const modalHTML = `
         <div id="studentModal" class="modal">
             <div class="modal-content">
                 <h2>Complete Your Profile</h2>
@@ -44,12 +49,12 @@ function showModal() {
         </div>
     `;
 
-    // Append modal HTML to the body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+  // Append modal HTML to the body
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Dynamically add styles
-    const style = document.createElement('style');
-    style.innerHTML = `
+  // Dynamically add styles
+  const style = document.createElement("style");
+  style.innerHTML = `
         /* Modal Styles */
         .modal {
             display: flex;
@@ -119,46 +124,53 @@ function showModal() {
             overflow: hidden;
         }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 
-    // Show the modal and prevent scrolling
-    const modal = document.getElementById('studentModal');
-    modal.style.display = 'flex';
-    document.body.classList.add('modal-open');
+  // Show the modal and prevent scrolling
+  const modal = document.getElementById("studentModal");
+  modal.style.display = "flex";
+  document.body.classList.add("modal-open");
 
-    // Handle form submission
-    const form = document.getElementById('studentForm');
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
+  // Handle form submission
+  const form = document.getElementById("studentForm");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-        const universityRollNumber = document.getElementById('universityRollNumber').value;
-        const profilePicture = document.getElementById('profilePicture').files[0];
+    const universityRollNumber = document.getElementById(
+      "universityRollNumber"
+    ).value;
+    const profilePicture = document.getElementById("profilePicture").files[0];
 
-        if (!universityRollNumber || !profilePicture) {
-            alert("Please fill in all the fields before submitting.");
-            return;
+    if (!universityRollNumber || !profilePicture) {
+      alert("Please fill in all the fields before submitting.");
+      return;
+    }
+
+    // Create FormData for the submission
+    let formData = new FormData();
+    formData.append("universityRollNumber", universityRollNumber);
+    formData.append("profilePicture", profilePicture);
+
+    // Send the data to the server
+    fetch("/api/v1/user/university-details", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => {
+        if (response.ok) {
+          // Close the modal after successful submission
+          modal.style.display = "none";
+          document.body.classList.remove("modal-open");
+          window.location.reload();
+        } else {
+          alert(
+            "There was an issue submitting your profile details. Please try again."
+          );
         }
-
-        // Create FormData for the submission
-        let formData = new FormData();
-        formData.append('universityRollNumber', universityRollNumber);
-        formData.append('profilePicture', profilePicture);
-
-        // Send the data to the server
-        fetch('/api/v1/user/university-details', {
-            method: 'POST',
-            body: formData,
-        }).then((response) => {
-            if (response.ok) {
-                // Close the modal after successful submission
-                modal.style.display = 'none';
-                document.body.classList.remove('modal-open');
-            } else {
-                alert('There was an issue submitting your profile details. Please try again.');
-            }
-        }).catch((error) => {
-            console.error('Error:', error);
-            alert('An error occurred. Please try again later.');
-        });
-    });
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("An error occurred. Please try again later.");
+      });
+  });
 }
