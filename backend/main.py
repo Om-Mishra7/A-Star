@@ -69,6 +69,7 @@ def headers(response):
         response.cache_control.max_age = 3600
     if request.path.startswith("/api/"):
         response.headers["Content-Type"] = "application/json"
+        response.headers["Cache-Control"] = "private, max-age=3600, must-revalidate"
     if request.path.startswith(("/", "/problems", "/contests", "/users")):
         response.headers["Cache-Control"] = "private, max-age=3600, must-revalidate"
     return response
