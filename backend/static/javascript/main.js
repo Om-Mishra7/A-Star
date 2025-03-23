@@ -41,7 +41,7 @@ function showModal() {
                     </div>
                     <div>
                         <label for="profilePicture">Profile Picture (Your Face):</label>
-                        <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required />
+                        <input type="file" id="profilePicture" name="profilePicture" accept=".png, .jpg, .jpeg" required />
                     </div>
                     <button type="submit">Submit</button>
                 </form>
