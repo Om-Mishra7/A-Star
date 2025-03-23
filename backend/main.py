@@ -67,11 +67,11 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 def headers(response):
     if request.path.startswith("/static/"):
         response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate, immutable"
-    if request.path.startswith("/api/"):
-        response.headers["Content-Type"] = "application/json"
-        response.headers["Cache-Control"] = "private, max-age=3600, must-revalidate"
     if request.path.startswith(("/", "/problems", "/contests", "/users")):
         response.headers["Cache-Control"] = "private, max-age=3600, must-revalidate"
+    if request.path.startswith("/api/"):
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
 
@@ -492,7 +492,7 @@ def format_ai_text(text):
 import requests
 import json
 import os
-import subprocess  # Added for running the solution
+import subprocess
 
 def generate_problem_using_ai(level): 
     example_problem_description = """<p><strong>Parentheses Balancing</strong></p>
@@ -661,7 +661,6 @@ def generate_problem_using_ai(level):
         print(f"Response content:\n{response.text}")  # Print raw response for debugging
         return None
     
-
 # Frontend endpoints
 
 @app.route("/users", methods=["GET"])
