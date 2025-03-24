@@ -470,8 +470,8 @@ def generate_contest_report(contest, contest_submissions, contest_problems, cont
         # Parse JSON response to get 'summary' and 'improvement'
         content_text = data["candidates"][0]["content"]["parts"][0]["text"]
         content_json = json.loads(content_text)
-        summary_html = content_json["summary"]
-        improvement_html = content_json["improvement"]
+        summary_html = content_json[0]["summary"]
+        improvement_html = content_json[0]["improvement"]
     except (json.JSONDecodeError, KeyError):
         # If JSON parsing fails, use regex to extract 'summary' and 'improvement'
         print("JSON parsing failed, attempting regex extraction")
@@ -2022,5 +2022,8 @@ def bad_request(e):
     ), 400
 
 
-if __name__ == "__main__" and os.getenv("ENVIROMENT") == "development":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":
+    if os.getenv("ENVIROMENT") == "development":
+        app.run(host="0.0.0.0", port=5000, debug=True)
+    elif os.getenv("ENVIROMENT") == "production":
+        app.run(host="0.0.0.0", port=5000, debug=False)
