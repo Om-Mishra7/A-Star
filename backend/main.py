@@ -452,7 +452,7 @@ def generate_contest_report(contest, contest_submissions, contest_problems, cont
 
     # Make the API request to the Gemini model
     response = requests.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent?key={os.environ['GEMINI_API_KEY']}",
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={os.environ['GEMINI_API_KEY']}",
         headers={"Content-Type": "application/json"},
         data=json.dumps({
             "contents": [{"parts": [{"text": prompt}]}],
@@ -576,7 +576,7 @@ def generate_problem_using_ai(level):
     # --- End of Prompt ---
 
     response = requests.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent?key=" + os.environ["GEMINI_API_KEY"],
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + os.environ["GEMINI_API_KEY"],
         headers={"Content-Type": "application/json"},
         data=json.dumps(
             {
@@ -700,6 +700,37 @@ def user(user_id):
                 submission["problem_title"] = "Hidden Due to Access Restriction"
         else:
             submission["problem_title"] = "Problem Not Found"
+
+    if user.get("user_summary") is None:
+        try:
+            generated_summary = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={os.environ['GEMINI_API_KEY']}",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({
+                    "contents": [{"parts": [{"text": f"Generate a concise, two-sentence plain text summary of a user based on their display name and submissions. Return ONLY the two sentences, with absolutely no additional text, markdown, special characters, or newlines. Display name: {user['user_profile']['display_name']}, submissions: {list(all_submissions)}"}]}],
+                    "generationConfig": {
+                        "response_mime_type": "text/plain", # Ask for plain text
+                        "maxOutputTokens": 150  # Adjust as needed
+                    }
+                })
+            )
+
+            
+            if generated_summary.status_code != 200:
+                user["user_summary"] = "Unable to generate summary due to API error."
+                print(f"API Error: {generated_summary.status_code} - {generated_summary.text}") # More informative error message
+            else:
+                user["user_summary"] = generated_summary.json()["candidates"][0]["content"]["parts"][0]["text"]
+                mongodb_client.users.update_one({"user_account.user_id": user["user_account"]["user_id"]}, {"$set": {"user_summary": user["user_summary"]}})  # Save the summary to the database
+        except requests.exceptions.RequestException as e:
+            user["user_summary"] = "Unable to generate summary due to a network error."
+            print(f"Network error: {e}")
+        except (KeyError, IndexError) as e:  #added error handling for missing keys or index out of range
+            user["user_summary"] = "Unable to generate summary due to unexpected API response format."
+            print(f"API response format error: {e}")
+
+    user["user_summary"] = user.get("user_summary", "No summary available.")
+
 
 
 

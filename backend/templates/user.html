@@ -276,8 +276,11 @@
         <div class="profile-info">
           <div class="user-header">
             <h1>{{ user.user_profile.display_name | title }}</h1>
-            <p class="roll-number">Roll Number: {{ user.university_details.student_id if user.university_details else
-              'N/A' }}</p>
+            {% if user.user_account.role == 'admin' %}
+            <p class="roll-number">No AI summary available due to access restrictions.</p>
+            {% else %}
+            <p class="roll-number">{{user.user_summary if user.user_summary else 'N/A'}}</p>
+            {% endif %}
           </div>
 
           <div class="user-details">
@@ -286,14 +289,20 @@
               <span>K.R. Mangalam University</span>
             </div>
             <div class="detail-row">
-              <span class="label">Email:</span>
+              <span class="label">Joined On:</span>
+              <span>{{ user.user_account.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Roll Number:</span>
+              <span>{{ user.university_details.student_id if user.university_details else
+                'N/A' }}
+              </span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Email Address:</span>
               <span>{{ user.user_account.primary_email | lower if user.user_account.role != 'admin' else 'Email hidden
                 due to access
                 restrictions.' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="label">Joined:</span>
-              <span>{{ user.user_account.created_at.strftime('%B %d, %Y') }}</span>
             </div>
           </div>
 
