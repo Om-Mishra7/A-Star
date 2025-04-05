@@ -285,7 +285,7 @@
             </div>
             <div class="detail-row">
               <span class="label">Email:</span>
-              <span>{{ user.user_account.primary_email | lower if user.user_account.role == 'student' else 'Email hidden
+              <span>{{ user.user_account.primary_email | lower if user.user_account.role != 'admin' else 'Email hidden
                 due to access
                 restrictions.' }}</span>
             </div>
