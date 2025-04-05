@@ -36,13 +36,16 @@
             d="m79.81,26.1c-1.67-1.02-3.07-2.36-4.14-4-.45-.69-1.38-.89-2.08-.44-.69.45-.89,1.38-.44,2.08,1.32,2.02,3.03,3.68,5.09,4.93.24.15.51.22.78.22.51,0,1-.26,1.28-.72.43-.71.2-1.63-.5-2.06Z" />
         </svg></span></a>
     <a href="/create-announcement">Create Announcement</a>
+    <a href="/users">Users</a>
     <a href="/platform-information">Platform Information</a>
+    <a onclick="logout()" href="#">Logout</a>
     <a href="/users/{{ session.user.user_account.user_id }}">
       <img src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
         alt="avatar" class="avatar"></a>
     {% else %}
     <a href="/contests">Contests</a>
     <a href="/problems">Problems</a>
+    <a onclick="logout()" href="#">Logout</a>
     <a href="/users/{{ session.user.user_account.user_id }}">
       src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
       alt="avatar" class="avatar"></a>
