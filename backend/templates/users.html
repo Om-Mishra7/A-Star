@@ -24,10 +24,12 @@
       <tr>
         <td>{{ loop.index }}</td>
         <td>
-          <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=80&width=80"
-            alt="avatar" style="width: 80px; height: 80px; border-radius: 5px;">
+          <a href="{{ user.user_profile.avatar_url }}" target="_blank">
+            <img src="{{ user.user_profile.avatar_url }}" alt="avatar"
+              style="width: 50px; height: 50px; border-radius: 5px;" loading="lazy">
+          </a>
         </td>
-        <td>{{ user.user_profile.display_name }}</td>
+        <td>{{ user.user_profile.display_name | title }}</td>
         <td>{{ user.university_details.student_id if user.university_details else 'N/A' }}</td>
       </tr>
       {% else %}

@@ -16,17 +16,13 @@ from flask import Flask, request, jsonify, session, redirect, url_for, render_te
 from flask_session import Session
 from flask_cors import CORS
 from flask_ckeditor import CKEditor
-from flask_ckeditor.utils import cleanify
 from zoneinfo import ZoneInfo
 import google.generativeai as genai
-import markdown
 import secrets
 
 
 # Get the current time in the "Asia/Kolkata" timezone
 kolkata_tz = ZoneInfo("Asia/Kolkata")
-
-
 
 
 load_dotenv()  # take environment variables from .env.
@@ -87,9 +83,10 @@ def inject_global_vars():
         )
         > 0,
         announcements=list(
-            mongodb_client.announcements.find({"is_active": True}, {"_id": 0}).sort(
-                "created_at", -1
-            )
+            mongodb_client.announcements.find(
+                {"is_active": True},
+                {"_id": 0}
+            ).sort("created_at", -1).limit(3)
         ),
         upcoming_contests=list(
             contests
@@ -107,9 +104,8 @@ def inject_global_vars():
         ),
         submissions_chart = generate_submissions_chart(),
         current_year = datetime.now(tz=kolkata_tz).year,
-
         new_users = list(
-            mongodb_client.users.find({}, {"_id": 0, "university_details.student_id": 1, "user_profile.avatar_url": 1, "user_profile.display_name": 1, }, sort=[("user_account.created_at", -1)], limit=10)
+            mongodb_client.users.find({}, {"_id": 0, "university_details.student_id": 1, "user_profile.avatar_url": 1, "user_profile.display_name": 1, "user_profile.user_id" : 1, "user_account.user_id" : 1 }, sort=[("user_account.created_at", -1)], limit=5)
             ),
         )
 
@@ -160,7 +156,7 @@ def calculate_global_leaderboard():
 
     # Convert the global leaderboard to a sorted list by score
     for user_id in global_leaderboard:
-        global_leaderboard[user_id]["profile"] = mongodb_client.users.find_one({"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1})
+        global_leaderboard[user_id]["profile"] = mongodb_client.users.find_one({"user_account.user_id": user_id}, {"_id": 0, "user_profile": 1, "user_account": 1})
     sorted_global_leaderboard = sorted(global_leaderboard.items(), key=lambda x: x[1]["score"], reverse=True)
 
     return sorted_global_leaderboard
@@ -242,6 +238,10 @@ def is_user_allowed_to_submit_as_competition_submission(problem_id, user_id):
             "competition_id"
         ]
         contest = mongodb_client.contests.find_one({"contest_id": contest_id})
+
+        if contest is None:
+            return False
+
         if datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(
             tzinfo=kolkata_tz
         ) < datetime.now(tz=kolkata_tz):
@@ -668,6 +668,42 @@ def users():
     if session.get("is_authenticated") is None or session["user"]["user_account"]["role"] != "admin":
         return redirect(url_for("homepage"))
     return render_template("users.html", users=list(mongodb_client.users.find({}, {"_id": 0})))
+
+@app.route("/users/<user_id>", methods=["GET"])
+def user(user_id):
+    user = mongodb_client.users.find_one({"user_account.user_id": user_id})
+    if user is None:
+        abort(404)
+
+    # Number of submissions by user 
+    total_submissions = mongodb_client.submissions.count_documents({"user_id": user["user_account"]["user_id"]})
+    # Number of accepted submissions by user
+    total_accepted_submissions = mongodb_client.submissions.count_documents({"user_id": user["user_account"]["user_id"], "submission_status.status_code": 3})
+    # Number of problems solved by user make unique by problem id
+    total_problems_solved = mongodb_client.submissions.distinct("problem_id", {"user_id": user["user_account"]["user_id"], "submission_status.status_code": 3})
+    total_problems_solved = len(total_problems_solved)
+    # Total number of problems
+    total_problems = mongodb_client.problems.count_documents({})
+
+    all_submissions = list(mongodb_client.submissions.find({"user_id": user["user_account"]["user_id"]}, {"_id": 0, 'submission_id': 1, 'problem_id': 1, 'language': 1, 'submission_status.status': 1}).sort("updated_at", -1))
+    # Add problem title to each submission only if the problem is a part of competition that has ended
+    for submission in all_submissions:
+        problem = mongodb_client.problems.find_one({"problem_id": submission["problem_id"]})
+        if problem is not None:
+            submission["problem_title"] = problem["problem_title"]
+            if problem["is_part_of_competition"]:
+                contest = mongodb_client.contests.find_one({"contest_id": problem["competition_id"]})
+                if contest is not None:
+                    if datetime.strptime(contest["contest_end_time"], "%Y-%m-%dT%H:%M").replace(tzinfo=kolkata_tz) > datetime.now(tz=kolkata_tz):
+                        submission["problem_title"] = "Hidden Due to Access Restriction"
+            else:
+                submission["problem_title"] = "Hidden Due to Access Restriction"
+        else:
+            submission["problem_title"] = "Problem Not Found"
+
+
+
+    return render_template("user.html", user=user, total_submissions=total_submissions, total_accepted_submissions=total_accepted_submissions, total_problems_solved=total_problems_solved, total_problems=total_problems, all_submissions=all_submissions)
 
 @app.route("/", methods=["GET"])
 def homepage():

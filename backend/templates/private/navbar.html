@@ -37,15 +37,15 @@
         </svg></span></a>
     <a href="/create-announcement">Create Announcement</a>
     <a href="/platform-information">Platform Information</a>
-    <a onclick="logout()"><img
-        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
+    <a href="/users/{{ session.user.user_account.user_id }}">
+      <img src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
         alt="avatar" class="avatar"></a>
     {% else %}
     <a href="/contests">Contests</a>
     <a href="/problems">Problems</a>
-    <a onclick="logout()"><img
-        src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
-        alt="avatar" class="avatar"></a>
+    <a href="/users/{{ session.user.user_account.user_id }}">
+      src="https://skypix.om-mishra.com/?image_url={{ session.user.user_profile.avatar_url }}&height=60&width=60"
+      alt="avatar" class="avatar"></a>
     {% endif %}
     {% else %}
     <a href="/login">Login</a>

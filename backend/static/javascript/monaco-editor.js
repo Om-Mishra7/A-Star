@@ -63,6 +63,7 @@ require(["vs/editor/editor.main"], function () {
   // Submit code
   document.getElementById("submit").addEventListener("click", function () {
     this.disabled = true;
+    this.innerText = "Submitting...";
     document.getElementById("output").innerText = "Submitting code...";
     const code = editor.getValue();
     const problemId = document.getElementById("problem-id").value;
@@ -71,6 +72,7 @@ require(["vs/editor/editor.main"], function () {
     if (!code.trim()) {
       document.getElementById("output").innerText =
         "Editor is empty. Write code before submitting.";
+      this.innerText = "Submit";
       this.disabled = false;
       return;
     }
@@ -90,6 +92,7 @@ require(["vs/editor/editor.main"], function () {
       .then((data) => {
         if (data.response_code == "429") {
           document.getElementById("output").innerText = `${data.message}`;
+          this.innerText = "Submit";
           this.disabled = false;
           return;
         }
@@ -100,6 +103,7 @@ require(["vs/editor/editor.main"], function () {
       })
       .catch((error) => {
         document.getElementById("output").innerText = "Submission failed.";
+        this.innerText = "Submit";
         this.disabled = false;
       });
   });
@@ -116,6 +120,7 @@ require(["vs/editor/editor.main"], function () {
               "output"
             ).innerHTML = `<p> Status: ${data.data.status.description} | Time: ${data.data.time}'s | Memory: ${data.data.memory}'KB</p><p>Stdout: ${data.data.stdout}</p><p>Stderr: ${data.data.stderr}</p>`;
             document.getElementById("submit").disabled = true;
+            document.getElementById("submit").innerText = "Submit Again";
             setTimeout(() => {
               document.getElementById("submit").disabled = false;
             }, 10000);

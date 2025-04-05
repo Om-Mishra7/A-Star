@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ user.user_profile.display_name | title }} | A*</title>
+  <script src="/static/javascript/main.js" defer></script>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="icon" href="/static/assets/a*-logo.png" type="image/x-icon">
+
+  <style>
+    /* Base styles */
+
+    .global-message {
+      display: none;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .container {
+      margin: 0 auto;
+      width: 90%;
+      max-width: 1200px;
+    }
+
+    /* Profile Card */
+    .profile-card {
+      background: transparent;
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .profile-header {
+      position: relative;
+      background: #000;
+      height: 10rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    .profile-image-container {
+      position: absolute;
+      bottom: 0;
+      left: 2rem;
+      transform: translateY(50%);
+    }
+
+    .profile-image {
+      width: 8rem;
+      height: 8rem;
+      border-radius: 50%;
+      border: 4px solid white;
+    }
+
+    .profile-image.admin {
+      border: 4px solid red;
+    }
+
+    .profile-info {
+      padding: 6rem 2rem 2rem;
+    }
+
+    .user-header h1 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #000;
+      margin-bottom: 0.25rem;
+    }
+
+    .roll-number {
+      color: #666;
+    }
+
+    .user-details {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      color: #333;
+    }
+
+    .label {
+      font-weight: 500;
+      width: 8rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .stat-card {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid #e0e0e0;
+      background-color: #fff;
+    }
+
+    .stat-card h3 {
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #666;
+    }
+
+    .stat-number {
+      font-size: 1.875rem;
+      font-weight: bold;
+      line-height: 1;
+      color: #000;
+    }
+
+    .stat-subtitle {
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      color: #666;
+    }
+
+    /* Progress Bar */
+    .progress-section {
+      margin-top: 1.5rem;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-bar {
+      height: 1rem;
+      background-color: #e0e0e0;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #000;
+    }
+
+    /* Submissions Table */
+    .submissions-card {
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .submissions-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .submissions-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #000;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background-color: #f8f8f8;
+      padding: 0.75rem 1.5rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      color: #666;
+    }
+
+    td {
+      padding: 1rem 1.5rem;
+      font-size: 0.875rem;
+      color: #333;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:hover {
+      background-color: #f8f8f8;
+    }
+
+    /* Status Badges */
+    .status-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      background-color: #f0f0f0;
+    }
+
+    .status-badge.accepted {
+      background-color: #e8e8e8;
+      color: #000;
+    }
+
+    .status-badge.wrong {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+
+    .status-badge.timeout {
+      background-color: #e8e8e8;
+      color: #000;
+    }
+
+    .status-badge.error {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  {% include 'private/navbar.html' %}
+  <main>
+    <div class="container">
+      <div class="profile-card">
+        <div class="profile-header">
+          <div class="profile-image-container">
+            <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=200&width=200"
+              alt="Profile" class="profile-image {{ 'admin' if user.user_account.role == 'admin' else '' }}">
+          </div>
+        </div>
+
+        <!-- User Info Section -->
+        <div class="profile-info">
+          <div class="user-header">
+            <h1>{{ user.user_profile.display_name | title }}</h1>
+            <p class="roll-number">Roll Number: {{ user.university_details.student_id }}</p>
+          </div>
+
+          <div class="user-details">
+            <div class="detail-row">
+              <span class="label">University:</span>
+              <span>K.R. Mangalam University</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Email:</span>
+              <span>{{ user.user_account.primary_email | lower if user.user_account.role == 'student' else 'Email hidden
+                due to access
+                restrictions.' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Joined:</span>
+              <span>{{ user.user_account.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card blue">
+              <h3>Total Submissions</h3>
+              <p class="stat-number">{{total_submissions}}</p>
+            </div>
+
+            <div class="stat-card green">
+              <h3>Accepted Submissions</h3>
+              <p class="stat-number">{{total_accepted_submissions}}</p>
+            </div>
+
+            <div class="stat-card purple">
+              <h3>Problems Solved</h3>
+              <p class="stat-number">{{total_problems_solved}}</p>
+              <p class="stat-subtitle">out of {{total_problems}} total problems</p>
+            </div>
+
+            <div class="stat-card orange">
+              <h3>Success Rate</h3>
+              <p class="stat-number">
+                {% if total_submissions > 0 %}
+                {{ (total_accepted_submissions / total_submissions * 100) | round(1) }}%
+                {% else %}
+                0%
+                {% endif %}
+              </p>
+              <p class="stat-subtitle">{{total_accepted_submissions}} / {{total_submissions}} submissions</p>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-section">
+            <div class="progress-header">
+              <span>Progress (Problems Solved)</span>
+              <span>{{total_problems_solved}} / {{total_problems}}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"
+                style="width: {{ (total_problems_solved / total_problems * 100) | round(1) }}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submissions Table -->
+      <div class="submissions-card">
+        <div class="submissions-header">
+          <h2>Recent Submissions</h2>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Submission ID</th>
+                <th>Problem ID</th>
+                <th>Problem Title</th>
+                <th>Language</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for submission in all_submissions %}
+              <tr>
+                <td>{{ submission.submission_id[-4:] | upper }}</td>
+                <td>{{ submission.problem_id[-4:] | upper }}</td>
+                <td>{{ submission.problem_title }}</td>
+                <td>{{ submission.language }}</td>
+                <td><span class="{{ submission.submission_status.status }}">{{
+                    submission.submission_status.status }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if all_submissions|length == 0 %}
+              <tr>
+                <td colspan="5" style="text-align: center;">No submissions found.</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  {% include 'private/footer.html' %}
+
+</body>
+
+</html>

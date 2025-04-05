@@ -26,11 +26,16 @@
           <tr>
             <td>{{ loop.index }}</td>
             <td style="display: flex; align-items: center;">
-              <img
-                src="https://skypix.om-mishra.com/?image_url={{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}&height=25&width=25"
-                alt="avatar" class="avatar" style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
-              {{ user[1].profile.user_profile.display_name if user[1].profile and user[1].profile.user_profile else
-              'Anonymous' }}
+              <a href="/users/{{ user[1].profile.user_account.user_id}}"
+                style="text-decoration: none;display: flex; align-items: center;justify-content: center;">
+                <img
+                  src="https://skypix.om-mishra.com/?image_url={{ user[1].profile.user_profile.avatar_url if user[1].profile and user[1].profile.user_profile else 'default_avatar_url' }}&height=25&width=25"
+                  alt="avatar" class="avatar" style="width: 30px; height: 30px; border-radius: 5px; margin-right: 5px;">
+                {{ (user[1].profile.user_profile.display_name | title) if user[1].profile and
+                user[1].profile.user_profile
+                else
+                'Anonymous' }}
+              </a>
             </td>
             <td>{{ user[1]["score"] }}</td>
           </tr>
@@ -123,9 +128,12 @@
         {% for user in new_users %}
         <tr>
           <td style="display: flex; align-items: center;">
-            <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=25&width=25"
-              alt="avatar" class="avatar" style="width: 25px; height: 25px; border-radius: 5px; margin-right: 5px;">
-            {{ user.user_profile.display_name}}
+            <a href="/users/{{ user.user_account.user_id }}"
+              style="text-decoration: none;display: flex; align-items: center;justify-content: center;">
+              <img src="https://skypix.om-mishra.com/?image_url={{ user.user_profile.avatar_url }}&height=25&width=25"
+                alt="avatar" class="avatar" style="width: 30px; height: 30px; border-radius: 5px; margin-right: 5px;">
+              {{ user.user_profile.display_name | title }}
+            </a>
           </td>
           <td>{{ user.university_details.student_id if user.university_details.student_id else 'N/A' }}</td>
         </tr>
