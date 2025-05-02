@@ -41,6 +41,13 @@
               <option value="medium">Medium</option>
               <option value="hard">Hard</option>
             </select>
+            <label for="problem_type">Problem Type</label>
+            <select name="problem_type" id="problem_type" class="form-control" required>
+              <option value="code_based" selected>Code Based</option>
+              <option value="industry_based">Industry Based</option>
+              <option value="algorithm_based">Algorithm Based</option>
+              <option value="data_structure_based">Data Structure Based</option>
+            </select>
             <label for="problem_title">Problem Title</label>
             <input type="text" name="problem_title" id="problem_title" class="form-control" required>
             <label for="problem_description">Problem Description</label>
@@ -71,6 +78,7 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const problemLevel = document.getElementById("problem_level");
+      const problemType = document.getElementById("problem_type");
       const problemTitle = document.getElementById("problem_title");
       const problemStdin = document.getElementById("problem_stdin");
       const problemStdout = document.getElementById("problem_stdout");
@@ -78,9 +86,14 @@
       const problemDescription = document.getElementById("problem_description");
       const problemDescriptionDiv = document.getElementById("problem_description-div");
 
+
       problemLevel.addEventListener("change", async (e) => {
         const difficulty = e.target.value;
-        const response = await fetch(`/api/v1/ai/create-problem?difficulty=${difficulty}`);
+        const response = await fetch(`/api/v1/ai/create-problem?difficulty=${difficulty}&problem_type=${problemType.value}`);
+        if (!response.ok) {
+          alert("There was an error generating the problem. Please try again.");
+          return;
+        }
         const data = await response.json();
         problemTitle.value = data.problem_title;
         problemStdin.value = data.problem_stdin;

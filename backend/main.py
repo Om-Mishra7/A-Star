@@ -494,7 +494,7 @@ import json
 import os
 import subprocess
 
-def generate_problem_using_ai(level): 
+def generate_problem_using_ai(level, problem_type):
     example_problem_description = """<p><strong>Parentheses Balancing</strong></p>
 
     <p>You are given a collection of strings. Each string consists only of the characters '(', ')', '{', '}', '[', and ']'. Your task is to determine, for each string, whether the parentheses within it are balanced. A string is considered to have balanced parentheses if it meets the following two conditions:</p>
@@ -534,26 +534,30 @@ def generate_problem_using_ai(level):
     NO<br />
     NO</code></div>"""
 
-    # --- Build the prompt ---
     prompt = f"""
-    Generate a unique competitive programming problem suitable for difficulty level '{level}'.  The problem should be original and not similar to existing problems. Avoid problems directly related to or easily derived from these titles: {[doc['problem_title'] for doc in mongodb_client.problems.find({}, {"problem_title": 1}).sort("created_at", -1)]}.
+    You are to generate a unique, original, and non-trivial competitive programming problem that fits the following criteria:
 
-    **Requirements:**
+    **Parameters:**
+    - Difficulty Level: '{level}'
+    - Problem Type: '{problem_type}'
 
-    1.  **Structure:**  Follow the structure outlined below (Title, Description, Input Format, Output Format, Examples, Test Cases).  Use HTML formatting as demonstrated in the example problem description.
-    2.  **Uniqueness:** The problem must be distinct and not a minor variation of a well-known problem.
-    3.  **Difficulty:**  Maintain the specified difficulty level consistently throughout the problem (description, test cases, solution complexity).
-    4.  **Clarity:**  The problem description must be unambiguous and easy to understand.  Use clear and concise language.
-    5.  **Multiple Examples:**  Provide *at least three* distinct input/output examples in the "Examples" section. These examples should cover different aspects of the problem.
-    6.  **Test Cases:** Generate *at least 20* diverse test cases.  Include:
-        *   **Normal Cases:**  Typical inputs and outputs.
-        *   **Edge Cases:**  Inputs at the boundaries of the problem constraints.
-        *   **Corner Cases:**  Unusual or tricky inputs that might expose flaws in a naive solution.
-        *   **Large Inputs:** Test cases with large input sizes to check for efficiency.
-    7.  **Solution:**  Provide a *correct and efficient* solution in Python.  This solution will be used to automatically generate the `problem_stdout` from the `problem_stdin`.
-    8.   **Input/Output Format:** Input consists of multiple test cases. The first line contains a single integer T (number of test cases). Each set of lines describes a test case. Be specific about what each line or set of lines in each test case represents. For *each* test case, provide the corresponding output in the specified format.
+    **Instructions:**
+    1. The problem must be of the specified type ('{problem_type}') and solvable by writing code (no puzzles, riddles, or problems requiring manual calculation or explanation).
+    2. The problem must be original and not a minor variation or direct copy of any well-known or existing problem. Avoid problems related to or easily derived from these titles: {[doc['problem_title'] for doc in mongodb_client.problems.find({}, {"problem_title": 1}).sort("created_at", -1)]}.
+    4. The problem must strictly follow the structure and formatting shown in the example below, using HTML for all formatting (including <p>, <strong>, <div>, <code>, etc.).
+    5. The description must be clear, unambiguous, and concise. Clearly specify the input and output formats, constraints, and requirements.
+    6. Provide at least three diverse input/output examples in the "Examples" section, covering normal, edge, and tricky cases.
+    7. Generate at least 20 test cases, including:
+        - Normal cases (typical inputs)
+        - Edge cases (boundary values)
+        - Corner cases (unusual/tricky inputs)
+        - Large inputs (to test efficiency)
+    8. Ensure that the test cases are well-distributed and include a variety of scenarios to thoroughly test the solution.
+    9. Provide a correct, efficient Python solution as a string in the output JSON. The solution must be able to generate the correct output for all test cases.
+    10. Input must consist of multiple test cases. The first line contains a single integer T (number of test cases), followed by the input for each test case as specified.
+    11. For each test case, output the answer in the specified format.
 
-    **Example Problem Description (for formatting reference):**
+    **Formatting Example (use this as a template):**
 
     {example_problem_description}
 
@@ -564,14 +568,18 @@ def generate_problem_using_ai(level):
         "problem_title": "string",
         "problem_description": "string",
         "problem_stdin": "string",
-        "problem_stdout": "string",  // This will be generated, but include the key
+        "problem_stdout": "string", 
         "problem_level": "{level}",
         "problem_tags": ["tag1", "tag2", ...],
-        "solution": "python code string"
     }}
     ```
 
-    **Generate the problem now, following all instructions carefully.**
+    **Important:**
+    - Do NOT generate problems that cannot be solved by code.
+    - Do NOT include any explanations, markdown, or extra commentary outside the required JSON.
+    - Only output the JSON as specified above.
+
+    Now, generate the problem according to all instructions.
     """
     # --- End of Prompt ---
 
@@ -609,49 +617,12 @@ def generate_problem_using_ai(level):
         data = response.json()
         content_text = data["candidates"][0]["content"]["parts"][0]["text"]
         problem_data = json.loads(content_text)
-
-        # --- Solution Execution and Output Generation ---
-        problem_stdin = problem_data.get("problem_stdin", "")
-        solution_code = problem_data.get("solution", "")
-
-        if not problem_stdin or not solution_code:
-            print("Error: Missing stdin or solution code.")
-            return None
         
-        # Save solution to a temporary file
-        with open("temp_solution.py", "w") as f:
-            f.write(solution_code)
-        #Run the solution with stdin and capture stdout
-        try:
-            process = subprocess.run(
-                ["python3", "temp_solution.py"],
-                input=problem_stdin,
-                text=True,
-                capture_output=True,
-                check=True,  # Raise an exception if the process fails
-                timeout=10   # 10-second timeout
-            )
-            problem_stdout = process.stdout
-            problem_data["problem_stdout"] = problem_stdout #Correct stdout
-
-        except subprocess.CalledProcessError as e:
-            print(f"Error: Solution execution failed. Return code: {e.returncode}")
-            print(f"Stderr:\n{e.stderr}")
-            return None
-        except subprocess.TimeoutExpired:
-            print("Error: Solution timed out.")
-            return None
-        finally:
-            # Clean up the temporary file
-            if os.path.exists("temp_solution.py"):
-                os.remove("temp_solution.py")
-        # --- End of Solution Execution ---
-
         return (
             problem_data.get("problem_title", ""),
             problem_data.get("problem_description", ""),
-            problem_stdin,  # Use the original stdin
-            problem_stdout, # Use generated stdout
+            problem_data.get("problem_stdin", ""),
+            problem_data.get("problem_stdout", ""),
             problem_data.get("problem_level", ""),
             problem_data.get("problem_tags", []),
         )
@@ -2019,7 +1990,14 @@ def register_contest(contest_id):
 def create_ai_problem():
     if session.get("is_authenticated") and session["user"]["user_account"]["role"] == "admin":
         problem_difficulty = request.args.get("difficulty")
-        response = generate_problem_using_ai(problem_difficulty)
+        problem_type = request.args.get("problem_type")
+        number_of_tries = 0
+        response = generate_problem_using_ai(problem_difficulty, problem_type)
+
+        while response is None and number_of_tries < 5:
+            print("Retrying to generate problem...")
+            number_of_tries += 1
+            response = generate_problem_using_ai(problem_difficulty, problem_type) 
         problem_title, problem_description, problem_stdin, problem_stdout, problem_level, problem_tags = response
 
         try:
